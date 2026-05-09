@@ -97,6 +97,18 @@ This library helps structure AI-assisted research and planning. It does not repl
 
 See `docs/safety-and-limitations.md` for details.
 
+## Validation
+
+Run the repository validation suite with:
+
+```bash
+npm test
+```
+
+The validation checks repository structure, Markdown headings, relative links, critical prompt references, metadata consistency, placeholder hygiene, and GitHub Actions configuration.
+
+See `docs/validation.md` for details.
+
 ## Author
 
 Created and maintained by Michael Gasperini.

@@ -15,3 +15,4 @@ The format is based on Keep a Changelog, and this project follows semantic versi
 - Reusable templates for project briefs, specialist outputs, cross-review notes, stage-gate reviews, and final outputs.
 - Example brief for an AI legal assistant SaaS.
 - Documentation for safety, limitations, customization, and inspiration.
+- Repository validation script and GitHub Actions workflow.

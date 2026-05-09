@@ -1,0 +1,20 @@
+{
+  "name": "agentic-rd-prompt-library",
+  "version": "0.1.0",
+  "description": "A curated prompt library for file-driven, multi-agent research and development workflows.",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node scripts/validate-library.mjs",
+    "validate": "node scripts/validate-library.mjs"
+  },
+  "keywords": [
+    "ai-agents",
+    "prompt-library",
+    "research",
+    "product-strategy",
+    "multi-agent"
+  ],
+  "author": "Michael Gasperini (https://mikesoft.it)",
+  "license": "MIT"
+}
