@@ -12,14 +12,17 @@ Agentic R&D Prompt Library is not an application or automation framework. It is 
 
 The core pattern is simple:
 
-```text
-project-brief.md
-    -> Master Orchestrator
-    -> Parallel Specialist Agents
-    -> Cross-Review Round
-    -> Stage Gate Reviewer
-    -> Final Synthesizer
-    -> final-output.md
+```mermaid
+flowchart TD
+    A["Project brief (templates/project-brief.md)"] --> B["Master Orchestrator (prompts/master-orchestrator.md)"]
+    B --> C["Orchestration plan (templates/orchestration-plan.md)"]
+    C --> D["Parallel Specialist Agents (prompts/specialist-agent.md)"]
+    D --> E["Specialist outputs (templates/specialist-output.md)"]
+    E --> F["Cross-Review Agent (prompts/cross-review-agent.md)"]
+    F --> G["Stage Gate Reviewer (prompts/stage-gate-reviewer.md)"]
+    G -->|Needs revision| D
+    G -->|Approved| H["Final Synthesizer (prompts/final-synthesizer.md)"]
+    H --> I["Final output (templates/final-output.md)"]
 ```
 
 ## Use Cases
