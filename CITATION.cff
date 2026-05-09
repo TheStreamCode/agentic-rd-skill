@@ -1,0 +1,13 @@
+cff-version: 1.2.0
+title: Agentic R&D Prompt Library
+message: If you use this prompt library, please cite it using this metadata.
+type: software
+authors:
+  - family-names: Gasperini
+    given-names: Michael
+url: https://github.com/TheStreamCode/agentic-rd-prompt-library
+repository-code: https://github.com/TheStreamCode/agentic-rd-prompt-library
+abstract: A curated prompt library for file-driven, multi-agent research and development workflows with specialist agents, cross-review, stage-gate reviews, and final synthesis.
+license: MIT
+version: 0.1.0
+date-released: "2026-05-09"
