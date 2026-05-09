@@ -6,9 +6,13 @@ This repository provides structured prompts, Markdown guides, and reusable templ
 
 The workflow is inspired by autonomous research systems such as Agent Laboratory, but generalized beyond academic research. It uses specialist agents, parallel analysis, cross-review, blocking stage-gate reviews, and a final synthesis phase to improve output quality and reduce unsupported conclusions.
 
+For day-to-day use, copy only `AGENTS.md` into the project where you want the workflow to run. The rest of this repository exists for documentation, examples, templates, and maintenance.
+
 ## What This Is
 
 Agentic R&D Prompt Library is not an application or automation framework. It is a professional prompt library for orchestrating AI agents through a disciplined Markdown-based workflow.
+
+The operational entrypoint is `AGENTS.md`. It is self-contained and tells a coding agent how to create or read `project-brief.md`, generate the `work/` files, use real subagents when available, simulate separate specialist passes when subagents are unavailable, and avoid writing the final output before stage-gate approval.
 
 The core pattern is simple:
 
@@ -40,6 +44,7 @@ flowchart TD
 
 ```text
 /
+├── AGENTS.md      # Self-contained operating instruction to copy into a project
 ├── prompts/       # Reusable agent prompts
 ├── guides/        # Operating instructions for the workflow
 ├── templates/     # Input and output Markdown templates
@@ -49,18 +54,17 @@ flowchart TD
 
 ## Quick Start
 
-1. Copy `templates/project-brief.md` into your workspace.
-2. Fill in the subject, goal, desired output, constraints, and success criteria.
-3. Give the AI agent `prompts/master-orchestrator.md` as the controlling prompt.
-4. Instruct the agent to follow the relevant files in `guides/` and `templates/`.
-5. Require the agent to produce specialist outputs, cross-review notes, a stage-gate review, and a final synthesized deliverable.
+1. Copy `AGENTS.md` into the project where you want the workflow to run.
+2. Add a `project-brief.md` file, or describe the project idea in your first message.
+3. Tell your coding agent: `Read AGENTS.md and run the workflow.`
+4. Let the agent continue automatically until it writes the approved final output.
 
 For a step-by-step workflow, see `docs/how-to-use-with-a-coding-agent.md`.
 
 Example instruction:
 
 ```text
-Use this repository as your operating guide. Read project-brief.md first. Then follow prompts/master-orchestrator.md, the relevant guides in guides/, and the templates in templates/. Produce all intermediate specialist outputs before writing the final report.
+Read AGENTS.md and run the workflow for this project. If project-brief.md is missing, create it from my request and continue automatically unless essential context is missing.
 ```
 
 ## Core Agents
@@ -73,7 +77,7 @@ Use this repository as your operating guide. Read project-brief.md first. Then f
 
 ## Recommended Output Folder
 
-When using this prompt library in a live project, ask the agent to create:
+When using this prompt library in a live project, the workflow produces:
 
 ```text
 work/
@@ -84,7 +88,7 @@ work/
 └── 05-final-output.md
 ```
 
-The `work/` folder is ignored by default because it contains project-specific generated outputs.
+The agent should create `work/05-final-output.md` only after the stage gate is `Approved`. The `work/` folder is ignored by default because it contains project-specific generated outputs.
 
 ## Design Principles
 

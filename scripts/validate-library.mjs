@@ -6,6 +6,7 @@ const root = process.cwd();
 
 const requiredFiles = [
   'README.md',
+  'AGENTS.md',
   'LICENSE',
   'CHANGELOG.md',
   'CONTRIBUTING.md',
@@ -68,6 +69,7 @@ const forbiddenPatterns = [
 ];
 
 const expectedReferences = [
+  'AGENTS.md',
   'prompts/master-orchestrator.md',
   'prompts/specialist-agent.md',
   'prompts/cross-review-agent.md',
@@ -198,6 +200,7 @@ function checkPromptReferences() {
   }
 
   const criticalReferences = [
+    'AGENTS.md',
     'prompts/master-orchestrator.md',
     'prompts/stage-gate-reviewer.md',
     'prompts/final-synthesizer.md',
@@ -234,6 +237,23 @@ function checkWorkflow() {
   if (!workflow.includes('actions/setup-node')) fail('validate workflow must set up Node.js');
 }
 
+function checkAgentsWorkflow() {
+  const agents = readText('AGENTS.md');
+  const requiredSnippets = [
+    'If real subagents are available',
+    'simulate subagents',
+    'Do not create or write `work/05-final-output.md` until the stage gate decision is `Approved`',
+    '`Blocked`: stop and ask the user for clarification or missing external input',
+    'I -->|Blocked|'
+  ];
+
+  for (const snippet of requiredSnippets) {
+    if (!agents.includes(snippet)) {
+      fail(`AGENTS.md is missing required workflow instruction: ${snippet}`);
+    }
+  }
+}
+
 checkRequiredStructure();
 const files = walk(root);
 checkMarkdownHeadings(files);
@@ -242,6 +262,7 @@ checkRelativeLinks(files);
 checkPromptReferences();
 checkMetadata();
 checkWorkflow();
+checkAgentsWorkflow();
 
 if (failures.length > 0) {
   console.error('Validation failed:');

@@ -17,3 +17,4 @@ The format is based on Keep a Changelog, and this project follows semantic versi
 - Documentation for safety, limitations, customization, and inspiration.
 - Repository validation script and GitHub Actions workflow.
 - Step-by-step guide for using the library with a coding agent.
+- Self-contained `AGENTS.md` workflow entrypoint for single-file use in target projects.

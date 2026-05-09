@@ -1,12 +1,14 @@
 # How To Use With A Coding Agent
 
-This guide explains how to use Agentic R&D Prompt Library inside a coding-agent environment such as Cursor, Claude Code, OpenCode, Codex CLI, or another file-aware AI coding assistant.
+This guide explains how to use Agentic R&D Prompt Library inside a coding-agent environment such as OpenCode, Claude Code, Cursor, Codex CLI, or another file-aware AI assistant.
 
-The library is not a standalone application. It is a structured set of prompts, guides, and templates that a coding agent can read and follow while working inside a repository or local folder.
+The recommended workflow uses one file: `AGENTS.md`. Copy that file into the project where the work should happen, then ask the agent to read it and run the workflow.
+
+You do not need to clone this whole repository into every project. The full repository is useful for development, examples, templates, validation, and documentation. The operational workflow is self-contained in `AGENTS.md`.
 
 ## When To Use This Workflow
 
-Use this workflow when you want an AI agent to produce a structured research, product, business, technical, or problem-solving deliverable from a project brief.
+Use this workflow when you want an AI agent to produce a structured research, product, business, technical, strategy, feasibility, or planning deliverable from a project brief or project idea.
 
 Good use cases include:
 
@@ -18,58 +20,48 @@ Good use cases include:
 - Structuring a complex problem-solving analysis
 - Preparing a research plan or literature-driven report
 
-## Step 1: Clone The Repository
+## Step 1: Copy The Operating File
 
-```bash
-git clone https://github.com/TheStreamCode/agentic-rd-prompt-library.git
-cd agentic-rd-prompt-library
-```
-
-Open the cloned folder in your coding-agent tool.
-
-## Step 2: Create A Project Brief
-
-Copy the project brief template:
-
-```bash
-cp templates/project-brief.md project-brief.md
-```
-
-On Windows PowerShell, use:
-
-```powershell
-Copy-Item templates/project-brief.md project-brief.md
-```
-
-Fill in `project-brief.md` with the subject, goal, desired output, audience, constraints, scope boundaries, success criteria, preferred tone, and human-review requirements.
-
-## Step 3: Give The Coding Agent Its Operating Instruction
-
-Paste this instruction into your coding agent:
+Copy only this file into the target project:
 
 ```text
-Use this repository as your operating guide.
-
-Read project-brief.md first.
-Then follow prompts/master-orchestrator.md.
-Use the relevant guides in guides/ and templates in templates/.
-
-Create a work/ folder with:
-- 01-orchestration-plan.md
-- 02-specialist-outputs/
-- 03-cross-review-notes.md
-- 04-stage-gate-review.md
-- 05-final-output.md
-
-Do not write the final output until the Stage Gate Reviewer approves progression.
-Keep assumptions, risks, conflicts, and human-review requirements explicit.
+AGENTS.md
 ```
 
-## Step 4: Let The Agent Create Intermediate Outputs
+Place it at the root of the project where the generated `work/` folder should be created.
 
-The agent should not jump directly to the final report.
+Do not ask the coding agent to use this whole repository as its working context unless you are improving the prompt library itself.
 
-It should first create:
+## Step 2: Provide The Project Brief
+
+Use either option:
+
+- Create `project-brief.md` in the target project.
+- Describe the project idea directly in your first message to the agent.
+
+The brief should identify the subject, goal, desired output, audience, constraints, success criteria, and any human-review requirements.
+
+If `project-brief.md` is missing but your first message has enough context, `AGENTS.md` instructs the agent to create the brief and continue automatically.
+
+## Step 3: Start The Workflow
+
+Use this instruction:
+
+```text
+Read AGENTS.md and run the workflow for this project.
+```
+
+If you are starting from a project idea instead of an existing brief, use:
+
+```text
+Read AGENTS.md and run the workflow for this idea: <describe the project idea here>
+```
+
+After this first prompt, the agent should continue without asking permission between normal workflow phases.
+
+## Step 4: Let The Agent Produce Intermediate Outputs
+
+The workflow should produce:
 
 ```text
 work/
@@ -80,7 +72,17 @@ work/
 └── 05-final-output.md
 ```
 
-The `work/` folder is ignored by Git by default because it contains project-specific generated output.
+The agent must not jump directly to `work/05-final-output.md`, and should not create that file as a placeholder before stage-gate approval.
+
+## Subagent Behavior
+
+`AGENTS.md` is universal and does not require a specific coding-agent product.
+
+If the environment supports real subagents, the agent should delegate each specialist role to a separate subagent.
+
+If the environment does not support real subagents, the agent should simulate subagents by running each specialist role as a separate isolated pass and writing each output to a separate file.
+
+In both cases, the workflow stays the same: specialist analysis first, cross-review second, stage-gate review third, final synthesis only after approval.
 
 ## Step 5: Review The Stage Gate
 
@@ -90,53 +92,45 @@ Before accepting the final output, inspect:
 work/04-stage-gate-review.md
 ```
 
-The stage gate should say `Approved` before the agent writes or finalizes `work/05-final-output.md`.
+The decision should be `Approved` before `work/05-final-output.md` is written or finalized.
 
-If the decision is `Needs Revision` or `Blocked`, ask the agent to fix the required issues before continuing.
+If the decision is `Needs Revision` or `Blocked`, the agent should follow the required fixes in the stage-gate review.
 
-## Step 6: Validate The Library
+## Minimal One-Prompt Usage
 
-Run the validation suite:
+If `AGENTS.md` is already in the target project, use:
+
+```text
+Read AGENTS.md and run the workflow. If project-brief.md is missing, create it from this request and continue automatically unless essential context is missing: <project idea>
+```
+
+## Common Mistakes
+
+- Cloning or loading the full prompt-library repository into the target project.
+- Asking the agent to write the final report immediately.
+- Providing a vague project brief with no goal or desired output.
+- Skipping specialist outputs.
+- Skipping cross-review.
+- Ignoring the stage-gate decision.
+- Treating generated legal, medical, financial, compliance, security, or safety-sensitive outputs as qualified professional advice.
+
+## For Library Maintainers
+
+The full repository still includes modular files for maintenance and reference:
+
+- `prompts/master-orchestrator.md`
+- `prompts/specialist-agent.md`
+- `prompts/cross-review-agent.md`
+- `prompts/stage-gate-reviewer.md`
+- `prompts/final-synthesizer.md`
+- `templates/project-brief.md`
+- `templates/specialist-output.md`
+- `templates/final-output.md`
+
+Run the validation suite with:
 
 ```bash
 npm test
 ```
 
 This validates the prompt library structure, documentation links, metadata, and quality checks. It does not validate the factual accuracy of generated project outputs.
-
-## Recommended Agent Behavior
-
-Ask the coding agent to:
-
-- Read files before making assumptions.
-- Keep specialist outputs separate.
-- Perform cross-review before final synthesis.
-- Use the Stage Gate Reviewer as a blocking quality gate.
-- Cite sources when making factual claims.
-- Label uncertainty clearly.
-- Avoid presenting legal, medical, financial, compliance, security, or safety-sensitive outputs as professional advice.
-
-## Example Brief Subject
-
-```text
-Research a new SaaS product for AI-powered legal assistants focused on contract review for small and medium-sized businesses in the US and EU.
-```
-
-For a complete example, see `examples/legal-ai-saas.md`.
-
-## Common Mistakes
-
-- Asking the agent to write the final report immediately.
-- Providing a vague project brief.
-- Skipping specialist outputs.
-- Skipping cross-review.
-- Ignoring the stage-gate decision.
-- Treating generated legal, medical, financial, or compliance content as qualified professional advice.
-
-## Minimal One-Prompt Usage
-
-If you want the shortest possible instruction, use this:
-
-```text
-Read project-brief.md and use this repository as your operating guide. Follow prompts/master-orchestrator.md, use the guides and templates, create the work/ outputs, run cross-review and stage-gate review, then produce the final output only after approval.
-```
