@@ -52,6 +52,8 @@ project-brief.md
 4. Instruct the agent to follow the relevant files in `guides/` and `templates/`.
 5. Require the agent to produce specialist outputs, cross-review notes, a stage-gate review, and a final synthesized deliverable.
 
+For a step-by-step workflow, see `docs/how-to-use-with-a-coding-agent.md`.
+
 Example instruction:
 
 ```text
