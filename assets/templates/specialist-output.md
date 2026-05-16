@@ -4,6 +4,10 @@
 
 State the exact scope from the orchestration plan.
 
+## Laboratory Phase
+
+Evidence Review, Plan Formulation, Resource Preparation, Execution, Results Analysis, Risk Review, or Synthesis Input.
+
 ## Key Findings
 
 - Finding 1

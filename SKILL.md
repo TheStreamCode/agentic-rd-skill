@@ -1,18 +1,21 @@
 ---
 name: agentic-rd-skill
-description: Run a universal file-driven agentic research and development workflow for structured research, product strategy, business analysis, technical feasibility, planning, market research, competitor analysis, risk review, and final synthesis. Use when the user asks for a structured deliverable or to run an agentic R&D workflow.
+description: Run a universal Agent Laboratory style workflow for any structured research, product, business, technical, strategy, feasibility, investigation, planning, or analysis deliverable. Use when the user wants an autonomous multi-agent process with evidence review, plan formulation, execution or investigation, results analysis, review gates, and final synthesis.
 license: MIT
 ---
 
 # Agentic R&D Workflow
 
-Use this self-contained skill package to automate a Markdown-first, multi-agent research and planning workflow inside the current workspace.
+Use this self-contained skill package to automate a Markdown-first, multi-agent laboratory workflow inside the current workspace.
+
+This is a general-purpose adaptation of the Agent Laboratory pattern: independent evidence review, collaborative plan formulation, task execution or investigation, results analysis, quality review, and final report writing. It is not limited to scientific research; apply the same lab workflow to product, business, technical, strategy, legal, compliance, security, UX, market, and operational use cases.
 
 Designed for skill-compatible coding agents with filesystem access. Subagent support is optional; use isolated simulated passes when real subagents are unavailable.
 
 ## Package Contents
 
 - `SKILL.md`: activation rules and core operating instructions.
+- `references/generalized-lab-model.md`: universal Agent Laboratory model and use-case mapping.
 - `references/workflow.md`: full phase sequence and approval gate.
 - `references/agent-roles.md`: specialist role selection guidance.
 - `references/quality-rules.md`: evidence, uncertainty, review, and safety standards.
@@ -37,6 +40,7 @@ Create and use this structure in the active workspace:
 
 ```text
 work/
+├── 00-lab-notes.md
 ├── 01-orchestration-plan.md
 ├── 02-specialist-outputs/
 ├── 03-cross-review-notes.md
@@ -49,18 +53,20 @@ Do not create or write `work/05-final-output.md` until `work/04-stage-gate-revie
 ## Workflow
 
 1. Read `references/workflow.md` for the canonical phase sequence.
-2. Read `references/agent-roles.md` before selecting specialists.
-3. Read `references/quality-rules.md` before cross-review, stage-gate review, and final synthesis.
-4. Use `references/implementation-notes.md` for script use, subagent behavior, and file-handling details.
-5. Use templates from `assets/templates/` for generated workflow files.
+2. Read `references/generalized-lab-model.md` to map the user's use case onto the laboratory phases.
+3. Read `references/agent-roles.md` before selecting specialists.
+4. Read `references/quality-rules.md` before cross-review, stage-gate review, and final synthesis.
+5. Use `references/implementation-notes.md` for script use, subagent behavior, and file-handling details.
+6. Use templates from `assets/templates/` for generated workflow files.
 
 ## Execution Rules
 
 - Select the fewest specialist roles that cover the brief well.
-- Always include Research Context and Risk and Assumptions specialist work.
+- Always include evidence/context review, plan formulation, execution or investigation, results analysis, and risk/assumptions coverage.
 - Use real subagents when the coding-agent environment supports them and the user has allowed subagent work.
 - Otherwise, simulate specialists as isolated passes. Each pass must read only the brief, orchestration plan, and its assigned scope before writing its own file.
 - Never collapse specialist analysis, cross-review, stage-gate review, and final synthesis into one response.
+- Parallelize independent specialist work when possible, but keep dependency gates sequential: review before plan, plan before execution, execution before results analysis, review before final report.
 - Require citations or source notes for factual claims when sources are available.
 - Mark unsupported claims as assumptions or inferences.
 - Preserve uncertainty and regulated-domain review boundaries.

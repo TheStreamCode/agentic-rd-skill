@@ -25,10 +25,12 @@ const requiredFiles = [
   '.github/ISSUE_TEMPLATE/documentation.yml',
   '.github/workflows/validate.yml',
   'references/workflow.md',
+  'references/generalized-lab-model.md',
   'references/agent-roles.md',
   'references/quality-rules.md',
   'references/implementation-notes.md',
   'assets/templates/project-brief.md',
+  'assets/templates/lab-notes.md',
   'assets/templates/orchestration-plan.md',
   'assets/templates/specialist-output.md',
   'assets/templates/cross-review-notes.md',
@@ -49,6 +51,7 @@ const forbiddenLegacyPaths = [
 
 const requiredSkillReferences = [
   'references/workflow.md',
+  'references/generalized-lab-model.md',
   'references/agent-roles.md',
   'references/quality-rules.md',
   'references/implementation-notes.md',
@@ -151,6 +154,7 @@ function checkScaffoldScript() {
 
     const expectedCreatedPaths = [
       'project-brief.md',
+      'work/00-lab-notes.md',
       'work/01-orchestration-plan.md',
       'work/02-specialist-outputs',
       'work/03-cross-review-notes.md',

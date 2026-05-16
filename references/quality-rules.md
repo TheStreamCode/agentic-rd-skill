@@ -16,6 +16,7 @@ Use these rules for every workflow phase.
 Each specialist output must:
 
 - Answer its assigned scope.
+- State which laboratory phase it supports: Evidence Review, Plan Formulation, Resource Preparation, Execution, Results Analysis, Risk Review, or Synthesis Input.
 - Avoid solving unrelated scopes unless there is a direct dependency.
 - Include useful inputs for final synthesis.
 - Raise questions for other agents when dependencies exist.
@@ -59,6 +60,7 @@ The final synthesis must:
 - Distinguish evidence from assumptions.
 - Convert analysis into practical recommendations.
 - Include risks, limitations, open questions, and human review requirements.
+- Explain enough of the laboratory path that the reader can see how evidence and execution led to the recommendations.
 
 ## Regulated And Sensitive Domains
 

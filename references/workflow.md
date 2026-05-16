@@ -1,10 +1,10 @@
 # Workflow Reference
 
-This is the canonical workflow for the Agentic R&D skill.
+This is the canonical workflow for the Agentic R&D skill. It generalizes the Agent Laboratory pattern beyond scientific research.
 
 ## Activation
 
-Run this workflow when the user asks for structured research, product planning, business analysis, technical feasibility, strategy, market or competitor research, risk review, or a similar evidence-aware planning deliverable.
+Run this workflow when the user asks for structured research, product planning, business analysis, technical feasibility, strategy, market or competitor research, risk review, investigation, experimentation, or a similar evidence-aware deliverable.
 
 The user may provide an existing `project-brief.md`, a natural-language idea, or a partially complete brief.
 
@@ -22,15 +22,63 @@ The project brief must identify:
 
 If non-essential fields are unknown, continue and mark assumptions. Ask only for missing details that block a usable brief.
 
+## Phase 0: Lab Setup
+
+Create `work/00-lab-notes.md` from `assets/templates/lab-notes.md`.
+
+Use this file to capture user notes, constraints, resources, available tools, source-access limitations, language preferences, human review requirements, and checkpoint notes. Keep it updated when important constraints or blockers appear.
+
+Treat the user as the pilot. The workflow may proceed autonomously between normal phases, but it must stop when the user's judgment, private input, credentials, paid tools, or regulated-domain approval is required.
+
 ## Phase 1: Orchestration
 
 Act as Master Orchestrator.
 
 Read `project-brief.md`, classify the project, choose specialist roles, and write `work/01-orchestration-plan.md` using `assets/templates/orchestration-plan.md`.
 
-The orchestration plan must define specialist scopes, output files, success criteria, execution mode, and stop conditions.
+The orchestration plan must map the brief to the generalized Agent Laboratory phases: Evidence And Context Review, Plan Formulation, Resource Preparation, Execution Or Investigation, Results Analysis, Cross-Review, Stage-Gate Review, and Final Synthesis.
 
-## Phase 2: Specialist Analysis
+## Phase 2: Evidence And Context Review
+
+Run evidence/context specialists independently. This is the universal equivalent of Agent Laboratory's literature review.
+
+Relevant sources may include academic papers, web sources, code, documentation, internal files, market data, competitor pages, benchmarks, policies, user notes, or other domain materials.
+
+## Phase 3: Plan Formulation
+
+After evidence/context review, create a focused plan for the work to execute.
+
+The plan must state:
+
+- What will be investigated, tested, compared, designed, or modeled.
+- What resources or inputs are needed.
+- What success criteria and evaluation standards will be used.
+- What cannot be verified with available tools.
+
+## Phase 4: Resource Preparation And Execution
+
+Prepare the required resources and run the planned investigation.
+
+Depending on the brief, execution may mean experiments, code inspection, market comparison, architecture analysis, scenario modeling, user-research synthesis, risk assessment, compliance mapping, prototype review, or implementation planning.
+
+Do not run destructive actions, paid tools, private systems, or credentialed external operations unless the user has clearly authorized them.
+
+For repeated execution failures, use the repair limit from `references/generalized-lab-model.md`.
+
+## Phase 5: Results Analysis
+
+Analyze execution outputs before cross-review.
+
+Separate:
+
+- Observed evidence.
+- Inferences.
+- Assumptions.
+- Failed or inconclusive attempts.
+- Trade-offs.
+- Recommendations.
+
+## Phase 6: Specialist Outputs
 
 Run each selected specialist independently.
 
@@ -46,7 +94,7 @@ Each specialist must:
 
 Use file names like `work/02-specialist-outputs/01-research-context-agent.md`.
 
-## Phase 3: Cross-Review
+## Phase 7: Cross-Review
 
 After all specialist outputs exist, run cross-review.
 
@@ -54,7 +102,7 @@ The Cross-Review Agent reads all specialist outputs and writes `work/03-cross-re
 
 If cross-review finds required revisions, update the relevant specialist files with a `Revisions After Cross-Review` section before stage-gate review.
 
-## Phase 4: Stage-Gate Review
+## Phase 8: Stage-Gate Review
 
 Run the Stage Gate Reviewer after cross-review and required revisions.
 
@@ -70,7 +118,7 @@ Score the package from 0 to 10. Only approve with score 8 or higher and no block
 
 Allow a maximum of two revision rounds unless the user explicitly authorizes more. If the same issue remains after two rounds, mark the phase `Blocked`.
 
-## Phase 5: Final Synthesis
+## Phase 9: Final Synthesis
 
 Only begin final synthesis after `work/04-stage-gate-review.md` says `Approved`.
 
