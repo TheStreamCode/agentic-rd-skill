@@ -29,6 +29,7 @@ const requiredFiles = [
   'references/agent-roles.md',
   'references/quality-rules.md',
   'references/implementation-notes.md',
+  'assets/agentic-rd-skill-hero.png',
   'assets/templates/project-brief.md',
   'assets/templates/lab-notes.md',
   'assets/templates/orchestration-plan.md',
@@ -144,6 +145,23 @@ function checkSkillReferences() {
   }
 }
 
+function checkReadmePresentation() {
+  if (!existsSync(path.join(root, 'README.md'))) return;
+
+  const readme = readText('README.md');
+  const requiredReadmeSnippets = [
+    'assets/agentic-rd-skill-hero.png',
+    'alt="Pixel-art overview of Agentic R&D Skill',
+    'width="100%"'
+  ];
+
+  for (const snippet of requiredReadmeSnippets) {
+    if (!readme.includes(snippet)) {
+      fail(`README.md must include presentation snippet: ${snippet}`);
+    }
+  }
+}
+
 function checkParallelSubagentPolicy() {
   const requiredPolicySnippets = [
     ['SKILL.md', 'Prefer real parallel subagents'],
@@ -215,6 +233,7 @@ checkRequiredFiles();
 checkLegacyPathsAreAbsent();
 checkSkillFrontmatter();
 checkSkillReferences();
+checkReadmePresentation();
 checkParallelSubagentPolicy();
 checkScaffoldScript();
 

@@ -2,6 +2,10 @@
 
 A universal Agent Skill for running Agent Laboratory style workflows across research, product, business, technical, strategy, feasibility, investigation, and planning use cases. It turns a project brief into evidence review, plan formulation, execution or investigation, results analysis, cross-review, stage-gate approval, and final synthesis.
 
+<p align="center">
+  <img src="assets/agentic-rd-skill-hero.png" alt="Pixel-art overview of Agentic R&D Skill turning a project brief into parallel specialist work, team collaboration, review, and final outputs." width="100%">
+</p>
+
 ## What This Is
 
 This repository is a self-contained skill package. It is designed for coding agents that support skills, local files, and parallel subagents.
