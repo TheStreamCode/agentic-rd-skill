@@ -4,9 +4,13 @@ A universal Agent Skill for running Agent Laboratory style workflows across rese
 
 ## What This Is
 
-This repository is a self-contained skill package. It is designed for coding agents that support skills, local files, and optional subagents.
+This repository is a self-contained skill package. It is designed for coding agents that support skills, local files, and parallel subagents.
 
 The workflow generalizes the [Agent Laboratory](https://agentlaboratory.github.io/) pattern beyond scientific research: literature review becomes evidence/context review, experimentation becomes execution or investigation, and report writing becomes final synthesis. The user remains the pilot; the skill provides structured autonomous assistance.
+
+Unlike the original Agent Laboratory era, this skill assumes modern coding agents may have native subagents. When available, the orchestrator should spawn independent specialists in parallel waves and only wait at dependency gates.
+
+The subagents are intended to act as a collaborating team. They produce independent specialist outputs, exchange questions and handoffs, reconcile shared assumptions in a team collaboration file, and then pass the package through cross-review and stage-gate approval.
 
 The workflow helps an agent produce structured deliverables such as:
 
@@ -57,12 +61,13 @@ work/
 ├── 00-lab-notes.md
 ├── 01-orchestration-plan.md
 ├── 02-specialist-outputs/
-├── 03-cross-review-notes.md
-├── 04-stage-gate-review.md
-└── 05-final-output.md
+├── 03-team-collaboration.md
+├── 04-cross-review-notes.md
+├── 05-stage-gate-review.md
+└── 06-final-output.md
 ```
 
-`work/05-final-output.md` is created only after the stage gate is approved.
+`work/06-final-output.md` is created only after the stage gate is approved.
 
 ## Scaffold Script
 
@@ -72,7 +77,7 @@ You can pre-create the required workflow files:
 node scripts/init-rd-workflow.mjs .
 ```
 
-The script does not overwrite existing files unless `--force` is passed, and it never creates `work/05-final-output.md`.
+The script does not overwrite existing files unless `--force` is passed, and it never creates `work/06-final-output.md`.
 
 ## Safety
 

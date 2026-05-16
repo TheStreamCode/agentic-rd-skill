@@ -46,8 +46,9 @@ const results = [
   ['project-brief.md', copyTemplate('project-brief.md', 'project-brief.md')],
   ['work/00-lab-notes.md', copyTemplate('lab-notes.md', 'work/00-lab-notes.md')],
   ['work/01-orchestration-plan.md', copyTemplate('orchestration-plan.md', 'work/01-orchestration-plan.md')],
-  ['work/03-cross-review-notes.md', copyTemplate('cross-review-notes.md', 'work/03-cross-review-notes.md')],
-  ['work/04-stage-gate-review.md', copyTemplate('stage-gate-review.md', 'work/04-stage-gate-review.md')]
+  ['work/03-team-collaboration.md', copyTemplate('team-collaboration.md', 'work/03-team-collaboration.md')],
+  ['work/04-cross-review-notes.md', copyTemplate('cross-review-notes.md', 'work/04-cross-review-notes.md')],
+  ['work/05-stage-gate-review.md', copyTemplate('stage-gate-review.md', 'work/05-stage-gate-review.md')]
 ];
 
 for (const [filePath, created] of results) {
@@ -55,4 +56,4 @@ for (const [filePath, created] of results) {
 }
 
 console.log('created work/02-specialist-outputs/');
-console.log('skipped work/05-final-output.md until stage-gate approval');
+console.log('skipped work/06-final-output.md until stage-gate approval');

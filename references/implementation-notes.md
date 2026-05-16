@@ -24,7 +24,7 @@ Run the scaffold script from any workspace:
 node path/to/agentic-rd-skill/scripts/init-rd-workflow.mjs .
 ```
 
-The script creates missing workflow files from bundled templates. It does not overwrite existing files unless `--force` is passed. It never creates `work/05-final-output.md`.
+The script creates missing workflow files from bundled templates. It does not overwrite existing files unless `--force` is passed. It never creates `work/06-final-output.md`.
 
 ## File Handling
 
@@ -34,9 +34,44 @@ The script creates missing workflow files from bundled templates. It does not ov
 - Keep specialist outputs separate until cross-review.
 - Do not write final synthesis content into any earlier phase file.
 
+## Parallel Subagent Policy
+
+Parallel subagents are the default execution model for this skill.
+
+Spawn all independent specialists in the same orchestration wave before waiting for any one result. Wait only when the next phase depends on the whole wave or on a specific blocking output.
+
+Use dependency gates, not sequential habits:
+
+- Evidence and context review agents can run in parallel.
+- Optional domain specialists can run in parallel when they depend only on the brief and orchestration plan.
+- Resource preparation agents can run in parallel after plan formulation when their resources are independent.
+- Execution or investigation agents can run in parallel when they own disjoint files, sources, scenarios, experiments, comparisons, or analysis slices.
+- Results analysis agents can run in parallel by domain or evidence slice after execution outputs exist.
+- Cross-review, stage-gate review, and final synthesis are sequential gates.
+
+If real subagents are unavailable, record that limitation in `work/00-lab-notes.md` and use simulated specialist passes.
+
+## Team Collaboration Protocol
+
+Subagents should behave like a working team with shared state and handoffs, not like isolated one-shot prompts.
+
+Use `work/03-team-collaboration.md` as the team coordination artifact. It should capture:
+
+- Team roster and role ownership.
+- Dependencies between agents.
+- Questions from one agent to another.
+- Agreements reached by the team.
+- Disagreements and minority views.
+- Handoffs needed for the next phase.
+- Shared assumptions that must be carried into cross-review.
+
+Collaboration happens after a wave produces initial outputs and before formal cross-review. The orchestrator should consolidate the team record, but it must preserve meaningful disagreements rather than forcing premature consensus.
+
+When using real subagents, give each subagent instructions to write its own output and provide collaboration notes for `work/03-team-collaboration.md`. When simulating, perform the same step as a distinct pass.
+
 ## Real Subagents
 
-Use real subagents when the environment supports them and the user has allowed subagent work. Give each subagent:
+Use real subagents when the environment supports them. Give each subagent:
 
 - The project brief.
 - The orchestration plan.
@@ -45,9 +80,11 @@ Use real subagents when the environment supports them and the user has allowed s
 
 Do not ask multiple subagents to edit the same file.
 
+The orchestrator should continue useful local work while subagents run. Avoid waiting immediately after spawning unless the next action is blocked.
+
 ## Simulated Specialist Passes
 
-If real subagents are unavailable, simulate specialists as separate passes:
+If real subagents are unavailable, simulate specialists as separate passes. This is a fallback, not the preferred path:
 
 - Start each pass from the brief, orchestration plan, role, and scope.
 - Do not merge conclusions during specialist analysis.

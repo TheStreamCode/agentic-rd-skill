@@ -25,9 +25,10 @@
 5. Execution or investigation
 6. Results analysis
 7. Specialist revision if required
-8. Cross-review
-9. Stage-gate review
-10. Final synthesis after approval
+8. Team collaboration and handoffs
+9. Cross-review
+10. Stage-gate review
+11. Final synthesis after approval
 
 ## Agent Laboratory Mapping
 
@@ -38,6 +39,14 @@
 | Resource Preparation |  |  |
 | Execution Or Investigation |  |  |
 | Results Analysis |  |  |
+
+## Team Collaboration Plan
+
+- Collaboration artifact: `work/03-team-collaboration.md`
+- Agent-to-agent questions expected:
+- Handoffs required:
+- Shared assumptions to reconcile:
+- Known disagreements to preserve:
 
 ## Success Criteria
 

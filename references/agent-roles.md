@@ -40,6 +40,27 @@ The default mental model is an Agent Laboratory adapted to the user's domain. Ke
 - For regulated or sensitive domains, include the relevant review role and state human review requirements.
 - Avoid assigning final synthesis responsibilities to specialists.
 
+## Parallelization Guidance
+
+Assign roles so independent agents can run in parallel without touching the same output file.
+
+- Give every subagent one owned output file under `work/02-specialist-outputs/`.
+- Split broad work by evidence source, domain, scenario, experiment, user segment, competitor set, system component, or risk category.
+- Run agents in waves that match the workflow dependencies.
+- Do not wait for one independent specialist before spawning the next.
+- Keep Cross-Review Agent, Stage Gate Reviewer, and Final Synthesizer as sequential gates after the relevant wave is complete.
+
+## Team Collaboration Guidance
+
+The team must collaborate explicitly before cross-review.
+
+- Each specialist should provide questions for other agents and handoff notes for downstream agents.
+- The orchestrator should consolidate those notes into `work/03-team-collaboration.md`.
+- Agents should challenge assumptions from adjacent roles when those assumptions affect their own scope.
+- The team should distinguish resolved agreements from unresolved disagreements.
+- Minority views should remain visible when they represent real uncertainty or a plausible alternative interpretation.
+- Cross-review should inspect whether collaboration improved the package or only repeated isolated findings.
+
 ## Role Mapping Examples
 
 - Scientific task: Evidence And Context Review, Plan Formulation, Resource Preparation, Execution Or Investigation, Results Analysis, Scientific Literature, Risk and Assumptions.

@@ -10,7 +10,7 @@ Use this self-contained skill package to automate a Markdown-first, multi-agent 
 
 This is a general-purpose adaptation of the Agent Laboratory pattern: independent evidence review, collaborative plan formulation, task execution or investigation, results analysis, quality review, and final report writing. It is not limited to scientific research; apply the same lab workflow to product, business, technical, strategy, legal, compliance, security, UX, market, and operational use cases.
 
-Designed for skill-compatible coding agents with filesystem access. Subagent support is optional; use isolated simulated passes when real subagents are unavailable.
+Designed for skill-compatible coding agents with filesystem access. Prefer real parallel subagents whenever the environment supports them; use isolated simulated passes only when real subagents are unavailable.
 
 ## Package Contents
 
@@ -32,7 +32,7 @@ Designed for skill-compatible coding agents with filesystem access. Subagent sup
 4. If essential context is missing, ask only the minimum blocking questions.
 5. After the brief exists, continue without asking for permission between normal workflow phases.
 
-You may run `scripts/init-rd-workflow.mjs` to scaffold `project-brief.md` and the required `work/` files. The script must not create `work/05-final-output.md`.
+You may run `scripts/init-rd-workflow.mjs` to scaffold `project-brief.md` and the required `work/` files. The script must not create `work/06-final-output.md`.
 
 ## Required Outputs
 
@@ -43,12 +43,13 @@ work/
 ├── 00-lab-notes.md
 ├── 01-orchestration-plan.md
 ├── 02-specialist-outputs/
-├── 03-cross-review-notes.md
-├── 04-stage-gate-review.md
-└── 05-final-output.md
+├── 03-team-collaboration.md
+├── 04-cross-review-notes.md
+├── 05-stage-gate-review.md
+└── 06-final-output.md
 ```
 
-Do not create or write `work/05-final-output.md` until `work/04-stage-gate-review.md` says `Approved`.
+Do not create or write `work/06-final-output.md` until `work/05-stage-gate-review.md` says `Approved`.
 
 ## Workflow
 
@@ -63,13 +64,23 @@ Do not create or write `work/05-final-output.md` until `work/04-stage-gate-revie
 
 - Select the fewest specialist roles that cover the brief well.
 - Always include evidence/context review, plan formulation, execution or investigation, results analysis, and risk/assumptions coverage.
-- Use real subagents when the coding-agent environment supports them and the user has allowed subagent work.
+- Prefer real parallel subagents. They are the primary execution model for this skill, not an optional enhancement.
+- In each phase, spawn all independent specialists before waiting for results. Do not run independent specialists one at a time when parallel subagents are available.
 - Otherwise, simulate specialists as isolated passes. Each pass must read only the brief, orchestration plan, and its assigned scope before writing its own file.
 - Never collapse specialist analysis, cross-review, stage-gate review, and final synthesis into one response.
-- Parallelize independent specialist work when possible, but keep dependency gates sequential: review before plan, plan before execution, execution before results analysis, review before final report.
+- Parallelize independent specialist work, but keep dependency gates sequential: review before plan, plan before execution, execution before results analysis, review before final report.
 - Require citations or source notes for factual claims when sources are available.
 - Mark unsupported claims as assumptions or inferences.
 - Preserve uncertainty and regulated-domain review boundaries.
+
+## Collaborative Team Protocol
+
+- Treat subagents as a collaborating team, not disconnected report writers.
+- The Master Orchestrator defines team roles, ownership, dependencies, and collaboration rules in `work/01-orchestration-plan.md`.
+- Each subagent writes its own specialist output, then contributes questions, dependencies, disagreements, and handoff notes to `work/03-team-collaboration.md`.
+- The team must reconcile shared assumptions before cross-review.
+- Cross-review evaluates both specialist outputs and the team collaboration record.
+- Final synthesis must reflect resolved agreements, unresolved disagreements, and important minority views.
 
 ## Stop Conditions
 

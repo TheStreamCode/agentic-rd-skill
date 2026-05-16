@@ -38,6 +38,22 @@ Read `project-brief.md`, classify the project, choose specialist roles, and writ
 
 The orchestration plan must map the brief to the generalized Agent Laboratory phases: Evidence And Context Review, Plan Formulation, Resource Preparation, Execution Or Investigation, Results Analysis, Cross-Review, Stage-Gate Review, and Final Synthesis.
 
+## Parallel Subagent Waves
+
+Use real parallel subagents as the normal execution model when the environment supports them.
+
+Organize work into waves:
+
+1. Evidence wave: independent context, source, market, technical, user, risk, or domain reviewers.
+2. Planning wave: plan formulation plus domain-specific plan critiques when they depend only on evidence outputs.
+3. Preparation wave: independent resource, data, document, code, scenario, or benchmark preparation.
+4. Execution wave: disjoint experiments, investigations, comparisons, analyses, or implementation-planning slices.
+5. Results wave: independent interpretation by domain, evidence slice, or scenario.
+
+Spawn every independent agent in a wave before waiting. Wait at phase gates where downstream work depends on the completed wave.
+
+Cross-review, stage-gate review, and final synthesis remain sequential quality gates.
+
 ## Phase 2: Evidence And Context Review
 
 Run evidence/context specialists independently. This is the universal equivalent of Agent Laboratory's literature review.
@@ -94,19 +110,34 @@ Each specialist must:
 
 Use file names like `work/02-specialist-outputs/01-research-context-agent.md`.
 
-## Phase 7: Cross-Review
+## Phase 7: Team Collaboration Phase
+
+After specialist outputs exist, create `work/03-team-collaboration.md` using `assets/templates/team-collaboration.md`.
+
+The team collaboration phase must:
+
+- List active team members and owned files.
+- Capture agent-to-agent questions and answers.
+- Record dependencies and handoffs.
+- Reconcile shared assumptions where possible.
+- Preserve disagreements and minority views.
+- Identify what cross-review should inspect.
+
+This phase is collaborative but not the same as cross-review. Collaboration lets the team exchange information; cross-review evaluates quality, conflicts, and readiness.
+
+## Phase 8: Cross-Review
 
 After all specialist outputs exist, run cross-review.
 
-The Cross-Review Agent reads all specialist outputs and writes `work/03-cross-review-notes.md` using `assets/templates/cross-review-notes.md`.
+The Cross-Review Agent reads all specialist outputs plus `work/03-team-collaboration.md` and writes `work/04-cross-review-notes.md` using `assets/templates/cross-review-notes.md`.
 
 If cross-review finds required revisions, update the relevant specialist files with a `Revisions After Cross-Review` section before stage-gate review.
 
-## Phase 8: Stage-Gate Review
+## Phase 9: Stage-Gate Review
 
 Run the Stage Gate Reviewer after cross-review and required revisions.
 
-The reviewer writes `work/04-stage-gate-review.md` using `assets/templates/stage-gate-review.md`.
+The reviewer writes `work/05-stage-gate-review.md` using `assets/templates/stage-gate-review.md`.
 
 Decision options:
 
@@ -118,10 +149,10 @@ Score the package from 0 to 10. Only approve with score 8 or higher and no block
 
 Allow a maximum of two revision rounds unless the user explicitly authorizes more. If the same issue remains after two rounds, mark the phase `Blocked`.
 
-## Phase 9: Final Synthesis
+## Phase 10: Final Synthesis
 
-Only begin final synthesis after `work/04-stage-gate-review.md` says `Approved`.
+Only begin final synthesis after `work/05-stage-gate-review.md` says `Approved`.
 
-The Final Synthesizer must use only approved specialist outputs, cross-review notes, and the stage-gate review. It writes `work/05-final-output.md` using `assets/templates/final-output.md` unless the brief requires a different structure.
+The Final Synthesizer must use only approved specialist outputs, team collaboration notes, cross-review notes, and the stage-gate review. It writes `work/06-final-output.md` using `assets/templates/final-output.md` unless the brief requires a different structure.
 
 The final output must resolve conflicts explicitly, preserve important uncertainty, distinguish evidence from assumptions, and convert analysis into practical recommendations.

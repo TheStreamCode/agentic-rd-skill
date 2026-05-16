@@ -33,6 +33,7 @@ const requiredFiles = [
   'assets/templates/lab-notes.md',
   'assets/templates/orchestration-plan.md',
   'assets/templates/specialist-output.md',
+  'assets/templates/team-collaboration.md',
   'assets/templates/cross-review-notes.md',
   'assets/templates/stage-gate-review.md',
   'assets/templates/final-output.md',
@@ -57,7 +58,7 @@ const requiredSkillReferences = [
   'references/implementation-notes.md',
   'assets/templates/project-brief.md',
   'scripts/init-rd-workflow.mjs',
-  'work/05-final-output.md'
+  'work/06-final-output.md'
 ];
 
 function fail(message) {
@@ -143,6 +144,31 @@ function checkSkillReferences() {
   }
 }
 
+function checkParallelSubagentPolicy() {
+  const requiredPolicySnippets = [
+    ['SKILL.md', 'Prefer real parallel subagents'],
+    ['SKILL.md', 'spawn all independent specialists before waiting'],
+    ['SKILL.md', 'Collaborative Team Protocol'],
+    ['references/implementation-notes.md', 'Parallel Subagent Policy'],
+    ['references/implementation-notes.md', 'Spawn all independent specialists in the same orchestration wave'],
+    ['references/implementation-notes.md', 'Team Collaboration Protocol'],
+    ['references/workflow.md', 'Parallel Subagent Waves'],
+    ['references/workflow.md', 'Team Collaboration Phase'],
+    ['references/agent-roles.md', 'Parallelization Guidance'],
+    ['references/agent-roles.md', 'Team Collaboration Guidance']
+  ];
+
+  for (const [relativePath, snippet] of requiredPolicySnippets) {
+    if (!existsSync(path.join(root, relativePath))) {
+      continue;
+    }
+
+    if (!readText(relativePath).includes(snippet)) {
+      fail(`${relativePath} must include parallel subagent policy snippet: ${snippet}`);
+    }
+  }
+}
+
 function checkScaffoldScript() {
   const scriptPath = path.join(root, 'scripts', 'init-rd-workflow.mjs');
   if (!existsSync(scriptPath)) return;
@@ -157,8 +183,9 @@ function checkScaffoldScript() {
       'work/00-lab-notes.md',
       'work/01-orchestration-plan.md',
       'work/02-specialist-outputs',
-      'work/03-cross-review-notes.md',
-      'work/04-stage-gate-review.md'
+      'work/03-team-collaboration.md',
+      'work/04-cross-review-notes.md',
+      'work/05-stage-gate-review.md'
     ];
 
     for (const expectedPath of expectedCreatedPaths) {
@@ -167,8 +194,8 @@ function checkScaffoldScript() {
       }
     }
 
-    if (existsSync(path.join(tempRoot, 'work/05-final-output.md'))) {
-      fail('init-rd-workflow.mjs must not create work/05-final-output.md');
+    if (existsSync(path.join(tempRoot, 'work/06-final-output.md'))) {
+      fail('init-rd-workflow.mjs must not create work/06-final-output.md');
     }
 
     const marker = 'Existing brief must not be overwritten';
@@ -188,6 +215,7 @@ checkRequiredFiles();
 checkLegacyPathsAreAbsent();
 checkSkillFrontmatter();
 checkSkillReferences();
+checkParallelSubagentPolicy();
 checkScaffoldScript();
 
 if (failures.length > 0) {
