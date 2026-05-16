@@ -1,83 +1,54 @@
-# Agentic R&D Prompt Library
+# Agentic R&D Skill
 
-A curated prompt library for file-driven, multi-agent research and development workflows.
-
-This repository provides structured prompts, Markdown guides, and reusable templates that help AI agents transform a project brief into research reports, product strategy documents, technical feasibility analyses, business plans, and final synthesized outputs.
-
-The workflow is inspired by autonomous research systems such as Agent Laboratory, but generalized beyond academic research. It uses specialist agents, parallel analysis, cross-review, blocking stage-gate reviews, and a final synthesis phase to improve output quality and reduce unsupported conclusions.
-
-For day-to-day use, copy only `AGENTS.md` into the project where you want the workflow to run. The rest of this repository exists for documentation, examples, templates, and maintenance.
+A universal Agent Skill for running file-driven, multi-agent research and development workflows. It turns a project brief into structured specialist analysis, cross-review notes, stage-gate approval, and a final evidence-aware synthesis.
 
 ## What This Is
 
-Agentic R&D Prompt Library is not an application or automation framework. It is a professional prompt library for orchestrating AI agents through a disciplined Markdown-based workflow.
+This repository is a self-contained skill package. It is designed for coding agents that support skills, local files, and optional subagents.
 
-The operational entrypoint is `AGENTS.md`. It is self-contained and tells a coding agent how to create or read `project-brief.md`, generate the `work/` files, use real subagents when available, simulate separate specialist passes when subagents are unavailable, and avoid writing the final output before stage-gate approval.
+The workflow helps an agent produce structured deliverables such as:
 
-The core pattern is simple:
+- research reports
+- product strategy documents
+- business analysis
+- technical feasibility studies
+- market and competitor analysis
+- implementation or next-step plans
 
-```mermaid
-flowchart TD
-    A["Project brief (templates/project-brief.md)"] --> B["Master Orchestrator (prompts/master-orchestrator.md)"]
-    B --> C["Orchestration plan (templates/orchestration-plan.md)"]
-    C --> D["Parallel Specialist Agents (prompts/specialist-agent.md)"]
-    D --> E["Specialist outputs (templates/specialist-output.md)"]
-    E --> F["Cross-Review Agent (prompts/cross-review-agent.md)"]
-    F --> G["Stage Gate Reviewer (prompts/stage-gate-reviewer.md)"]
-    G -->|Needs revision| D
-    G -->|Approved| H["Final Synthesizer (prompts/final-synthesizer.md)"]
-    H --> I["Final output (templates/final-output.md)"]
-```
-
-## Use Cases
-
-- Market and competitor research
-- SaaS and startup opportunity analysis
-- Product strategy and MVP scoping
-- Technical feasibility studies
-- Scientific or technical research planning
-- Structured problem solving
-- Business model and go-to-market analysis
-- Cross-functional decision support
-
-## Repository Structure
+## Repository Layout
 
 ```text
-/
-├── AGENTS.md      # Self-contained operating instruction to copy into a project
-├── prompts/       # Reusable agent prompts
-├── guides/        # Operating instructions for the workflow
-├── templates/     # Input and output Markdown templates
-├── examples/      # Example briefs and expected output structures
-└── docs/          # Project documentation, limitations, and rationale
+.
+├── SKILL.md
+├── assets/
+│   └── templates/
+├── references/
+└── scripts/
+    ├── init-rd-workflow.mjs
+    └── validate-skill.mjs
 ```
 
-## Quick Start
+`SKILL.md` is the entrypoint. The references and templates are loaded only when needed.
 
-1. Copy `AGENTS.md` into the project where you want the workflow to run.
-2. Add a `project-brief.md` file, or describe the project idea in your first message.
-3. Tell your coding agent: `Read AGENTS.md and run the workflow.`
-4. Let the agent continue automatically until it writes the approved final output.
+## Install
 
-For a step-by-step workflow, see `docs/how-to-use-with-a-coding-agent.md`.
+Copy this repository folder into the skill directory used by your coding agent, or install it through your agent's supported skill installation mechanism.
 
-Example instruction:
+For a local smoke test:
+
+```bash
+npm test
+```
+
+## Use
+
+Ask your coding agent to use the skill for a project brief or planning request:
 
 ```text
-Read AGENTS.md and run the workflow for this project. If project-brief.md is missing, create it from my request and continue automatically unless essential context is missing.
+Use the agentic-rd-skill skill to produce a technical feasibility study for this project idea...
 ```
 
-## Core Agents
-
-- `Master Orchestrator`: Reads the project brief, classifies the project, selects specialist agents, and defines the workflow.
-- `Specialist Agents`: Produce independent research or analysis from domain-specific perspectives.
-- `Cross-Review Agent`: Forces specialists to inspect each other's work, identify conflicts, and revise conclusions.
-- `Stage Gate Reviewer`: Blocks progression until the current phase meets quality standards.
-- `Final Synthesizer`: Integrates all reviewed outputs into the final deliverable.
-
-## Recommended Output Folder
-
-When using this prompt library in a live project, the workflow produces:
+The skill creates this workspace structure:
 
 ```text
 work/
@@ -88,48 +59,22 @@ work/
 └── 05-final-output.md
 ```
 
-The agent should create `work/05-final-output.md` only after the stage gate is `Approved`. The `work/` folder is ignored by default because it contains project-specific generated outputs.
+`work/05-final-output.md` is created only after the stage gate is approved.
 
-## Design Principles
+## Scaffold Script
 
-- File-driven workflows over vague chat instructions
-- Modular prompts instead of one oversized system prompt
-- Specialist reasoning before synthesis
-- Review gates before progression
-- Explicit assumptions and uncertainty
-- Human review for legal, medical, financial, security, and compliance-sensitive topics
-- Professional outputs with clear structure, evidence, risks, and recommendations
-
-## Safety Notice
-
-This library helps structure AI-assisted research and planning. It does not replace qualified professionals. Outputs involving legal, medical, financial, security, compliance, or safety-critical topics should be reviewed by appropriate human experts before use.
-
-See `docs/safety-and-limitations.md` for details.
-
-## Validation
-
-Run the repository validation suite with:
+You can pre-create the required workflow files:
 
 ```bash
-npm test
+node scripts/init-rd-workflow.mjs .
 ```
 
-The validation checks repository structure, Markdown headings, relative links, critical prompt references, metadata consistency, placeholder hygiene, and GitHub Actions configuration.
+The script does not overwrite existing files unless `--force` is passed, and it never creates `work/05-final-output.md`.
 
-See `docs/validation.md` for details.
+## Safety
 
-## Author
-
-Created and maintained by Michael Gasperini.
-
-Website: [mikesoft.it](https://mikesoft.it)
-
-## Inspiration
-
-This project is conceptually inspired by Agent Laboratory by Samuel Schmidgall and collaborators, especially its phased autonomous research workflow, specialized agents, iterative refinement, and reviewer-based quality checks. This repository does not copy its implementation; it adapts the general workflow idea into a Markdown-first prompt library for broader research and development use cases.
-
-See `docs/inspiration.md`.
+This skill structures AI-assisted research and planning. It does not replace qualified human review. Legal, medical, financial, compliance, security, employment, credit, insurance, and safety-critical outputs require appropriate human review before use.
 
 ## License
 
-MIT License. See `LICENSE`.
+MIT. See [LICENSE](LICENSE).

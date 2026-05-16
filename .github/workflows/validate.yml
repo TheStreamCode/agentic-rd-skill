@@ -6,16 +6,12 @@ on:
     branches:
       - main
 
-permissions:
-  contents: read
-
 jobs:
   validate:
-    name: Validate prompt library
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repository
+      - name: Checkout
         uses: actions/checkout@v4
 
       - name: Set up Node.js
@@ -23,5 +19,5 @@ jobs:
         with:
           node-version: 22
 
-      - name: Run validation
+      - name: Validate skill package
         run: npm test

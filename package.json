@@ -1,16 +1,16 @@
 {
-  "name": "agentic-rd-prompt-library",
+  "name": "agentic-rd-skill",
   "version": "0.1.0",
-  "description": "A curated prompt library for file-driven, multi-agent research and development workflows.",
+  "description": "A universal skill for file-driven, multi-agent research and development workflows.",
   "private": true,
   "type": "module",
   "scripts": {
-    "test": "node scripts/validate-library.mjs",
-    "validate": "node scripts/validate-library.mjs"
+    "test": "node scripts/validate-skill.mjs",
+    "validate": "node scripts/validate-skill.mjs"
   },
   "keywords": [
     "ai-agents",
-    "prompt-library",
+    "agent-skills",
     "research",
     "product-strategy",
     "multi-agent"

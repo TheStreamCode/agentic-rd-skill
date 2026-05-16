@@ -1,17 +1,18 @@
 # Security Policy
 
-This repository contains prompts, guides, and templates. It does not contain executable application code.
+This repository contains prompt, workflow, template, and helper-script content for AI coding agents.
 
-## Reporting Issues
+## Reporting A Vulnerability
 
-If you find a prompt pattern that could encourage unsafe behavior, leakage of sensitive information, policy bypassing, or misleading professional advice, please open an issue or contact the maintainers.
+Please report security concerns through GitHub security advisories or by opening an issue if the concern is not sensitive.
 
-Maintainer website: `https://mikesoft.it`
+Include:
 
-## Sensitive Data
+- affected file or workflow step
+- expected behavior
+- observed risk
+- suggested mitigation, if available
 
-Do not include API keys, credentials, private customer data, legal files, medical records, or confidential business information in public examples or issues.
+## Sensitive Domains
 
-## High-Risk Domains
-
-Prompts involving legal, medical, financial, cybersecurity, compliance, or safety-critical topics should include explicit human-review requirements.
+The skill requires human review for legal, medical, financial, compliance, security, employment, credit, insurance, and safety-critical outputs. Generated results should not be treated as professional advice.

@@ -1,0 +1,27 @@
+name: Skill improvement
+description: Suggest an improvement to the workflow, references, templates, or scaffold script.
+title: "[Improvement]: "
+labels:
+  - enhancement
+body:
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposal
+      description: What should change?
+    validations:
+      required: true
+  - type: textarea
+    id: rationale
+    attributes:
+      label: Rationale
+      description: Why is this useful?
+    validations:
+      required: true
+  - type: textarea
+    id: compatibility
+    attributes:
+      label: Compatibility notes
+      description: Any impact on existing skill behavior?
+    validations:
+      required: false

@@ -10,7 +10,7 @@ State what the agent workflow should accomplish.
 
 ## Desired Output
 
-Specify the final deliverable, such as research report, product strategy, business plan, MVP scope, technical feasibility study, or implementation plan.
+Specify the final deliverable, such as a research report, product strategy, business plan, MVP scope, technical feasibility study, or implementation plan.
 
 ## Audience
 
