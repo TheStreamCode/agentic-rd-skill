@@ -91,6 +91,10 @@ This skill structures AI-assisted research and planning. It does not replace qua
 
 This skill is inspired by Agent Laboratory by Samuel Schmidgall and collaborators, especially its phased workflow for literature review, experimentation, and report writing. This repository is not a fork of Agent Laboratory and does not reproduce its Python implementation; it adapts the workflow pattern into a portable skill for broader coding-agent use cases.
 
+## Support This Work
+
+If this skill helps your research, planning, or agent workflow, support continued maintenance through GitHub Sponsors: [github.com/sponsors/TheStreamCode](https://github.com/sponsors/TheStreamCode).
+
 ## License
 
 MIT. See [LICENSE](LICENSE).
