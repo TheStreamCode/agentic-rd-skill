@@ -56,6 +56,16 @@ Do not treat all tasks as a simple report-writing job. Run the laboratory loop:
 
 When an environment supports subagents, use them as the laboratory staff. When it does not, simulate staff as isolated passes with separate output files.
 
+## Scale To The Brief
+
+The laboratory loop is a maximum, not a fixed cost. Match its weight to the brief so a small question does not trigger a full multi-wave lab.
+
+- Small or narrow brief: one or two specialists, a single wave, collaboration folded into the orchestrator's notes, and one quick pass each for cross-review, stage-gate, and final synthesis.
+- Medium brief: a few specialists across one or two waves with a light team-collaboration step.
+- Large or regulated brief: the full phase sequence, multiple waves, explicit team collaboration, and all relevant review and domain roles.
+
+Mandatory minimum at every size: evidence/context review, plan formulation, execution or investigation, results analysis, risk and assumptions coverage, and the stage-gate quality gate before final synthesis. Add any other role, wave, or revision round only when it materially changes the deliverable. When in doubt, prefer fewer specialists with sharper scopes over many overlapping ones.
+
 ## Execution Repair Limit
 
 When the plan includes execution, code inspection, prototype checks, data analysis, or benchmark-style work:

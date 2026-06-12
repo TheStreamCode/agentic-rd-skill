@@ -1,7 +1,8 @@
 ---
 name: agentic-rd-skill
-description: Run a universal Agent Laboratory style workflow for any structured research, product, business, technical, strategy, feasibility, investigation, planning, or analysis deliverable. Use when the user wants an autonomous multi-agent process with evidence review, plan formulation, execution or investigation, results analysis, review gates, and final synthesis.
+description: This skill should be used when the user wants an autonomous, multi-agent Agent Laboratory style workflow to produce a structured research, product, business, technical, strategy, feasibility, investigation, planning, or analysis deliverable. Trigger on requests such as "run a feasibility study", "do a market and competitor analysis", "research and plan this idea", "write a strategy memo", or any project brief that needs evidence review, plan formulation, execution or investigation, results analysis, cross-review and stage-gate gates, and a final synthesis.
 license: MIT
+allowed-tools: Read, Write, Edit, Bash, Glob, Grep, Task, WebSearch, WebFetch, TodoWrite
 ---
 
 # Agentic R&D Workflow
@@ -20,6 +21,7 @@ Designed for skill-compatible coding agents with filesystem access. Prefer real 
 - `references/agent-roles.md`: specialist role selection guidance.
 - `references/quality-rules.md`: evidence, uncertainty, review, and safety standards.
 - `references/implementation-notes.md`: install, scaffold, subagent, and file-handling notes.
+- `references/example-run.md`: a compact end-to-end example showing the expected file trail and output quality.
 - `assets/templates/`: Markdown templates for all workflow files.
 - `scripts/init-rd-workflow.mjs`: optional scaffold script.
 - `scripts/validate-skill.mjs`: repository validation for the public skill package.
@@ -32,7 +34,7 @@ Designed for skill-compatible coding agents with filesystem access. Prefer real 
 4. If essential context is missing, ask only the minimum blocking questions.
 5. After the brief exists, continue without asking for permission between normal workflow phases.
 
-You may run `scripts/init-rd-workflow.mjs` to scaffold `project-brief.md` and the required `work/` files. The script must not create `work/06-final-output.md`.
+Run `scripts/init-rd-workflow.mjs` to scaffold `project-brief.md` and the required `work/` files. The script must not create `work/06-final-output.md`.
 
 ## Required Outputs
 
@@ -49,6 +51,18 @@ work/
 └── 06-final-output.md
 ```
 
+Each workflow phase maps to a specific output path. The numbered laboratory phases (evidence review, plan formulation, execution, results analysis) are not separate files: they are materialized as one file per specialist inside `work/02-specialist-outputs/`.
+
+| Phase | Output path |
+| --- | --- |
+| Lab setup | `work/00-lab-notes.md` |
+| Orchestration | `work/01-orchestration-plan.md` |
+| Evidence review, plan, execution, results (one file per specialist) | `work/02-specialist-outputs/NN-<role>.md` |
+| Team collaboration (consolidated by the orchestrator) | `work/03-team-collaboration.md` |
+| Cross-review | `work/04-cross-review-notes.md` |
+| Stage-gate review | `work/05-stage-gate-review.md` |
+| Final synthesis | `work/06-final-output.md` |
+
 Do not create or write `work/06-final-output.md` until `work/05-stage-gate-review.md` says `Approved`.
 
 ## Workflow
@@ -59,6 +73,17 @@ Do not create or write `work/06-final-output.md` until `work/05-stage-gate-revie
 4. Read `references/quality-rules.md` before cross-review, stage-gate review, and final synthesis.
 5. Use `references/implementation-notes.md` for script use, subagent behavior, and file-handling details.
 6. Use templates from `assets/templates/` for generated workflow files.
+7. Consult `references/example-run.md` for a worked end-to-end example when unsure about expected output quality.
+
+## Scale To The Brief
+
+Match workflow weight to the brief. Do not run a full multi-wave laboratory for a small question.
+
+- Small or narrow brief: use one or two specialists, run a single wave, and fold collaboration into the orchestrator's notes instead of a separate exchange. Keep cross-review, stage-gate, and final synthesis as a single quick pass each.
+- Medium brief: use a few specialists across one or two waves with a light team-collaboration step.
+- Large or regulated brief: use the full phase sequence, multiple waves, explicit team collaboration, and the relevant review roles.
+
+Always keep the mandatory minimum regardless of size: evidence/context review, plan formulation, execution or investigation, results analysis, risk/assumptions coverage, and the stage-gate quality gate before final synthesis. Everything else is optional and added only when it materially changes the deliverable. See `references/generalized-lab-model.md` for the scaling detail.
 
 ## Execution Rules
 
@@ -77,7 +102,8 @@ Do not create or write `work/06-final-output.md` until `work/05-stage-gate-revie
 
 - Treat subagents as a collaborating team, not disconnected report writers.
 - The Master Orchestrator defines team roles, ownership, dependencies, and collaboration rules in `work/01-orchestration-plan.md`.
-- Each subagent writes its own specialist output, then contributes questions, dependencies, disagreements, and handoff notes to `work/03-team-collaboration.md`.
+- Each subagent writes only its own specialist output file, and returns its questions, dependencies, disagreements, and handoff notes to the orchestrator (in its result, not by editing a shared file).
+- The orchestrator consolidates those returned notes into `work/03-team-collaboration.md`. Never have multiple subagents write the same file concurrently.
 - The team must reconcile shared assumptions before cross-review.
 - Cross-review evaluates both specialist outputs and the team collaboration record.
 - Final synthesis must reflect resolved agreements, unresolved disagreements, and important minority views.

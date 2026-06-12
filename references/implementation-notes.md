@@ -65,9 +65,9 @@ Use `work/03-team-collaboration.md` as the team coordination artifact. It should
 - Handoffs needed for the next phase.
 - Shared assumptions that must be carried into cross-review.
 
-Collaboration happens after a wave produces initial outputs and before formal cross-review. The orchestrator should consolidate the team record, but it must preserve meaningful disagreements rather than forcing premature consensus.
+Collaboration happens after a wave produces initial outputs and before formal cross-review. The orchestrator consolidates the team record, but it must preserve meaningful disagreements rather than forcing premature consensus.
 
-When using real subagents, give each subagent instructions to write its own output and provide collaboration notes for `work/03-team-collaboration.md`. When simulating, perform the same step as a distinct pass.
+`work/03-team-collaboration.md` has a single writer: the orchestrator. Each subagent writes only its own specialist file and returns its collaboration notes (questions, dependencies, disagreements, handoffs) in its result. The orchestrator merges those returned notes into the collaboration file. This avoids the concurrent-write hazard described under "Real Subagents". When simulating, perform the same consolidation step as a distinct pass.
 
 ## Real Subagents
 
@@ -77,8 +77,9 @@ Use real subagents when the environment supports them. Give each subagent:
 - The orchestration plan.
 - Its assigned role and scope.
 - The exact output file it owns.
+- Instructions to return collaboration notes in its result rather than write any shared file.
 
-Do not ask multiple subagents to edit the same file.
+Do not ask multiple subagents to edit the same file. Shared files such as `work/03-team-collaboration.md` are written only by the orchestrator.
 
 The orchestrator should continue useful local work while subagents run. Avoid waiting immediately after spawning unless the next action is blocked.
 

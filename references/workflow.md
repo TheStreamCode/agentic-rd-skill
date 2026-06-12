@@ -8,6 +8,22 @@ Run this workflow when the user asks for structured research, product planning, 
 
 The user may provide an existing `project-brief.md`, a natural-language idea, or a partially complete brief.
 
+## Phase To Output Map
+
+The numbered laboratory phases below do not each get their own file. Evidence review, plan formulation, execution, and results analysis are produced as one file per specialist inside `work/02-specialist-outputs/`. The remaining phases each own a single file.
+
+| Phase | Output path |
+| --- | --- |
+| Phase 0 Lab Setup | `work/00-lab-notes.md` |
+| Phase 1 Orchestration | `work/01-orchestration-plan.md` |
+| Phases 2-6 Evidence, Plan, Execution, Results, Specialist Outputs | `work/02-specialist-outputs/NN-<role>.md` (one per specialist) |
+| Phase 7 Team Collaboration | `work/03-team-collaboration.md` (consolidated by the orchestrator) |
+| Phase 8 Cross-Review | `work/04-cross-review-notes.md` |
+| Phase 9 Stage-Gate Review | `work/05-stage-gate-review.md` |
+| Phase 10 Final Synthesis | `work/06-final-output.md` |
+
+Phase 6 (Specialist Outputs) is the phase in which the Phase 2-5 lab work is materialized as specialist files; it is not a separate stage that runs after results analysis.
+
 ## Brief Intake
 
 The project brief must identify:
@@ -106,13 +122,14 @@ Each specialist must:
 - Separate facts, assumptions, inferences, risks, and recommendations.
 - Cite sources when available.
 - State uncertainty clearly.
-- Write one file under `work/02-specialist-outputs/`.
+- Write one file under `work/02-specialist-outputs/` (its own file only).
+- Return collaboration notes (questions, dependencies, disagreements, handoffs) to the orchestrator in its result, rather than editing any shared file.
 
 Use file names like `work/02-specialist-outputs/01-research-context-agent.md`.
 
 ## Phase 7: Team Collaboration Phase
 
-After specialist outputs exist, create `work/03-team-collaboration.md` using `assets/templates/team-collaboration.md`.
+After specialist outputs exist, the orchestrator consolidates the collaboration notes returned by each subagent into `work/03-team-collaboration.md` using `assets/templates/team-collaboration.md`. Only the orchestrator writes this file, so parallel subagents never contend for it.
 
 The team collaboration phase must:
 

@@ -2,6 +2,8 @@
 
 A universal Agent Skill for running Agent Laboratory style workflows across research, product, business, technical, strategy, feasibility, investigation, and planning use cases. It turns a project brief into evidence review, plan formulation, execution or investigation, results analysis, cross-review, stage-gate approval, and final synthesis.
 
+"R&D" here means research *and development* in the broad sense: the skill is not limited to scientific research and applies to any structured, evidence-aware deliverable.
+
 <p align="center">
   <img src="assets/agentic-rd-skill-hero.png" alt="Pixel-art overview of Agentic R&D Skill turning a project brief into parallel specialist work, team collaboration, review, and final outputs." width="100%">
 </p>
@@ -72,6 +74,8 @@ work/
 ```
 
 `work/06-final-output.md` is created only after the stage gate is approved.
+
+For a compact end-to-end example of the file trail and expected output quality, see [`references/example-run.md`](references/example-run.md).
 
 ## Scaffold Script
 

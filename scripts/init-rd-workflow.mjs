@@ -57,3 +57,5 @@ for (const [filePath, created] of results) {
 
 console.log('created work/02-specialist-outputs/');
 console.log('skipped work/06-final-output.md until stage-gate approval');
+console.log('');
+console.log('Next: fill in project-brief.md, then start the workflow from work/00-lab-notes.md.');

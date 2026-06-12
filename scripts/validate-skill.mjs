@@ -29,6 +29,7 @@ const requiredFiles = [
   'references/agent-roles.md',
   'references/quality-rules.md',
   'references/implementation-notes.md',
+  'references/example-run.md',
   'assets/agentic-rd-skill-hero.png',
   'assets/templates/project-brief.md',
   'assets/templates/lab-notes.md',
@@ -57,6 +58,7 @@ const requiredSkillReferences = [
   'references/agent-roles.md',
   'references/quality-rules.md',
   'references/implementation-notes.md',
+  'references/example-run.md',
   'assets/templates/project-brief.md',
   'scripts/init-rd-workflow.mjs',
   'work/06-final-output.md'
@@ -148,41 +150,36 @@ function checkSkillReferences() {
 function checkReadmePresentation() {
   if (!existsSync(path.join(root, 'README.md'))) return;
 
-  const readme = readText('README.md');
-  const requiredReadmeSnippets = [
-    'assets/agentic-rd-skill-hero.png',
-    'alt="Pixel-art overview of Agentic R&D Skill',
-    'width="100%"'
-  ];
-
-  for (const snippet of requiredReadmeSnippets) {
-    if (!readme.includes(snippet)) {
-      fail(`README.md must include presentation snippet: ${snippet}`);
-    }
+  // Structural check: the hero image must be referenced. Do not pin exact
+  // alt text or width so wording can change without breaking validation.
+  if (!readText('README.md').includes('assets/agentic-rd-skill-hero.png')) {
+    fail('README.md must reference the hero image assets/agentic-rd-skill-hero.png');
   }
 }
 
-function checkParallelSubagentPolicy() {
-  const requiredPolicySnippets = [
-    ['SKILL.md', 'Prefer real parallel subagents'],
-    ['SKILL.md', 'spawn all independent specialists before waiting'],
-    ['SKILL.md', 'Collaborative Team Protocol'],
-    ['references/implementation-notes.md', 'Parallel Subagent Policy'],
-    ['references/implementation-notes.md', 'Spawn all independent specialists in the same orchestration wave'],
-    ['references/implementation-notes.md', 'Team Collaboration Protocol'],
-    ['references/workflow.md', 'Parallel Subagent Waves'],
+function checkPolicyHeadings() {
+  // Validate that the parallel-subagent and team-collaboration policies exist
+  // structurally (as section headings), not by matching exact prose. This keeps
+  // the policy discoverable while letting the wording be edited freely.
+  const requiredHeadings = [
+    ['SKILL.md', '## Collaborative Team Protocol'],
+    ['SKILL.md', '## Scale To The Brief'],
+    ['references/implementation-notes.md', '## Parallel Subagent Policy'],
+    ['references/implementation-notes.md', '## Team Collaboration Protocol'],
+    ['references/workflow.md', '## Parallel Subagent Waves'],
     ['references/workflow.md', 'Team Collaboration Phase'],
-    ['references/agent-roles.md', 'Parallelization Guidance'],
-    ['references/agent-roles.md', 'Team Collaboration Guidance']
+    ['references/agent-roles.md', '## Parallelization Guidance'],
+    ['references/agent-roles.md', '## Team Collaboration Guidance'],
+    ['references/generalized-lab-model.md', '## Scale To The Brief']
   ];
 
-  for (const [relativePath, snippet] of requiredPolicySnippets) {
+  for (const [relativePath, heading] of requiredHeadings) {
     if (!existsSync(path.join(root, relativePath))) {
       continue;
     }
 
-    if (!readText(relativePath).includes(snippet)) {
-      fail(`${relativePath} must include parallel subagent policy snippet: ${snippet}`);
+    if (!readText(relativePath).includes(heading)) {
+      fail(`${relativePath} must include section heading: ${heading}`);
     }
   }
 }
@@ -234,7 +231,7 @@ checkLegacyPathsAreAbsent();
 checkSkillFrontmatter();
 checkSkillReferences();
 checkReadmePresentation();
-checkParallelSubagentPolicy();
+checkPolicyHeadings();
 checkScaffoldScript();
 
 if (failures.length > 0) {

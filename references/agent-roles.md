@@ -54,8 +54,8 @@ Assign roles so independent agents can run in parallel without touching the same
 
 The team must collaborate explicitly before cross-review.
 
-- Each specialist should provide questions for other agents and handoff notes for downstream agents.
-- The orchestrator should consolidate those notes into `work/03-team-collaboration.md`.
+- Each specialist should return questions for other agents and handoff notes to the orchestrator, not write them into a shared file.
+- The orchestrator is the sole writer of `work/03-team-collaboration.md` and consolidates the returned notes there.
 - Agents should challenge assumptions from adjacent roles when those assumptions affect their own scope.
 - The team should distinguish resolved agreements from unresolved disagreements.
 - Minority views should remain visible when they represent real uncertainty or a plausible alternative interpretation.
