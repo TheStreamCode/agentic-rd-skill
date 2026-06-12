@@ -79,6 +79,7 @@ Do not create or write `work/06-final-output.md` until `work/05-stage-gate-revie
 
 Match workflow weight to the brief. Do not run a full multi-wave laboratory for a small question.
 
+- Trivial brief: the orchestrator may do a single inline pass with no subagents. Record evidence, assumptions, and risks in `work/00-lab-notes.md`, write a short `work/05-stage-gate-review.md` self-check, then `work/06-final-output.md`. The intermediate specialist, collaboration, and cross-review files are optional at this tier. The stage-gate rule still holds: do not write `06-final-output.md` until `05-stage-gate-review.md` says `Approved`.
 - Small or narrow brief: use one or two specialists, run a single wave, and fold collaboration into the orchestrator's notes instead of a separate exchange. Keep cross-review, stage-gate, and final synthesis as a single quick pass each.
 - Medium brief: use a few specialists across one or two waves with a light team-collaboration step.
 - Large or regulated brief: use the full phase sequence, multiple waves, explicit team collaboration, and the relevant review roles.

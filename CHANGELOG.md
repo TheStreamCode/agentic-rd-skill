@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.3.0
+
+- Added a "Trivial brief" scaling tier: a single inline orchestrator pass with no subagents, while preserving the stage-gate invariant.
+- Aligned the `orchestration-plan.md` template to the canonical Phase 0-10 numbering with output paths, removing the step/phase mismatch.
+- Documented that parallel isolation can produce duplicate findings, and that cross-review/synthesis must deduplicate them.
+- Clarified that agent-to-agent questions are reconciled post-wave by the orchestrator, not answered live (team-collaboration template and implementation notes).
+
 ## 0.2.0
 
 - Made the team-collaboration step single-writer: specialists return notes to the orchestrator, which consolidates `work/03-team-collaboration.md` (removes a concurrent-write hazard).

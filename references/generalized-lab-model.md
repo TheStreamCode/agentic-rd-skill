@@ -60,6 +60,7 @@ When an environment supports subagents, use them as the laboratory staff. When i
 
 The laboratory loop is a maximum, not a fixed cost. Match its weight to the brief so a small question does not trigger a full multi-wave lab.
 
+- Trivial brief: a single inline orchestrator pass, no subagents. Capture evidence, assumptions, and risks in `work/00-lab-notes.md`, do a short stage-gate self-check in `work/05-stage-gate-review.md`, then write `work/06-final-output.md`. Intermediate specialist, collaboration, and cross-review files are optional here. The stage-gate invariant still applies: no `06-final-output.md` until `05-stage-gate-review.md` is `Approved`.
 - Small or narrow brief: one or two specialists, a single wave, collaboration folded into the orchestrator's notes, and one quick pass each for cross-review, stage-gate, and final synthesis.
 - Medium brief: a few specialists across one or two waves with a light team-collaboration step.
 - Large or regulated brief: the full phase sequence, multiple waves, explicit team collaboration, and all relevant review and domain roles.

@@ -49,6 +49,8 @@ Use dependency gates, not sequential habits:
 - Results analysis agents can run in parallel by domain or evidence slice after execution outputs exist.
 - Cross-review, stage-gate review, and final synthesis are sequential gates.
 
+Because parallel specialists work in isolation, two of them may independently surface the same finding. This redundancy is expected, not a defect. Cross-review must flag the overlap and final synthesis must deduplicate it into a single claim.
+
 If real subagents are unavailable, record that limitation in `work/00-lab-notes.md` and use simulated specialist passes.
 
 ## Team Collaboration Protocol
@@ -68,6 +70,8 @@ Use `work/03-team-collaboration.md` as the team coordination artifact. It should
 Collaboration happens after a wave produces initial outputs and before formal cross-review. The orchestrator consolidates the team record, but it must preserve meaningful disagreements rather than forcing premature consensus.
 
 `work/03-team-collaboration.md` has a single writer: the orchestrator. Each subagent writes only its own specialist file and returns its collaboration notes (questions, dependencies, disagreements, handoffs) in its result. The orchestrator merges those returned notes into the collaboration file. This avoids the concurrent-write hazard described under "Real Subagents". When simulating, perform the same consolidation step as a distinct pass.
+
+With one-shot parallel subagents, agent-to-agent questions are not answered live: an agent cannot see another agent's output mid-run. Collaboration is therefore a post-wave reconciliation by the orchestrator, which answers each question from the relevant specialist output or marks it open for cross-review. If a question genuinely blocks a specialist, run a dependent follow-up wave rather than expecting a synchronous exchange.
 
 ## Real Subagents
 

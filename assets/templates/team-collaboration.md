@@ -7,6 +7,8 @@
 
 ## Agent Questions And Answers
 
+With one-shot parallel subagents these are not a live dialogue: each agent raises questions in its returned notes, and the orchestrator reconciles them here after the wave (answering from another agent's output, or marking the item open).
+
 | From | To | Question | Answer Or Status |
 | --- | --- | --- | --- |
 

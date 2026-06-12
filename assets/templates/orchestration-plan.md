@@ -16,19 +16,19 @@
 - Real subagents available: yes or no
 - If no, simulated specialist passes will be used
 
-## Workflow Steps
+## Workflow Phases
 
-1. Lab setup and notes
-2. Evidence and context review
-3. Plan formulation
-4. Resource preparation
-5. Execution or investigation
-6. Results analysis
-7. Specialist revision if required
-8. Team collaboration and handoffs
-9. Cross-review
-10. Stage-gate review
-11. Final synthesis after approval
+Canonical phase numbering from `references/workflow.md`. The lab phases (2-6) are materialized as one file per specialist; the rest own a single file.
+
+- Phase 0 Lab Setup -> `work/00-lab-notes.md`
+- Phase 1 Orchestration (this plan) -> `work/01-orchestration-plan.md`
+- Phases 2-6 Evidence, Plan, Resource Prep, Execution, Results, Specialist Outputs -> `work/02-specialist-outputs/NN-<role>.md`
+- Phase 7 Team Collaboration (orchestrator-consolidated) -> `work/03-team-collaboration.md`
+- Phase 8 Cross-Review -> `work/04-cross-review-notes.md`
+- Phase 9 Stage-Gate Review -> `work/05-stage-gate-review.md`
+- Phase 10 Final Synthesis after approval -> `work/06-final-output.md`
+
+Targeted specialist revisions, when cross-review requires them, happen within Phase 8 before the stage gate, not as a separate phase.
 
 ## Agent Laboratory Mapping
 
