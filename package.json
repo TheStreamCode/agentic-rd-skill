@@ -3,6 +3,14 @@
   "version": "0.3.0",
   "description": "A universal skill for file-driven, multi-agent research and development workflows.",
   "private": true,
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/TheStreamCode/agentic-rd-skill.git"
+  },
+  "homepage": "https://github.com/TheStreamCode/agentic-rd-skill#readme",
+  "bugs": {
+    "url": "https://github.com/TheStreamCode/agentic-rd-skill/issues"
+  },
   "type": "module",
   "scripts": {
     "test": "node scripts/validate-skill.mjs",
