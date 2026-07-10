@@ -23,7 +23,7 @@ const requiredFiles = [
   '.github/ISSUE_TEMPLATE/bug_report.yml',
   '.github/ISSUE_TEMPLATE/skill_improvement.yml',
   '.github/ISSUE_TEMPLATE/documentation.yml',
-  '.github/workflows/validate.yml',
+  '.github/workflows/ci.yml',
   'references/workflow.md',
   'references/generalized-lab-model.md',
   'references/agent-roles.md',
