@@ -1,5 +1,9 @@
 # Changelog
 
+## [Unreleased]
+
+- Standardized the CI workflow filename to `.github/workflows/ci.yml` and aligned the package validation script to require the new path.
+
 ## 0.3.0
 
 - Added a "Trivial brief" scaling tier: a single inline orchestrator pass with no subagents, while preserving the stage-gate invariant.
