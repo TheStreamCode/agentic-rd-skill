@@ -93,7 +93,7 @@ This skill structures AI-assisted research and planning. It does not replace qua
 
 ## Inspiration
 
-This skill is inspired by Agent Laboratory by Samuel Schmidgall and collaborators, especially its phased workflow for literature review, experimentation, and report writing. This repository is not a fork of Agent Laboratory and does not reproduce its Python implementation; it adapts the workflow pattern into a portable skill for broader coding-agent use cases.
+This independent project adapts and generalizes the workflow pattern described by Agent Laboratory by Samuel Schmidgall and collaborators, especially its phased workflow for literature review, experimentation, and report writing. It is not a fork and does not reproduce the Agent Laboratory Python implementation.
 
 ## Support This Work
 
