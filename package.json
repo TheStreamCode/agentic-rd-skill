@@ -1,7 +1,7 @@
 {
   "name": "agentic-rd-skill",
-  "version": "0.3.0",
-  "description": "A universal skill for file-driven, multi-agent research and development workflows.",
+  "version": "1.0.0",
+  "description": "A portable Agent Skill for evidence-aware, stateful multi-agent research and development workflows.",
   "private": true,
   "repository": {
     "type": "git",
@@ -13,15 +13,22 @@
   },
   "type": "module",
   "scripts": {
-    "test": "node scripts/validate-skill.mjs",
-    "validate": "node scripts/validate-skill.mjs"
+    "test": "node --test",
+    "validate": "node scripts/validate-repo.mjs",
+    "benchmark": "node scripts/benchmark.mjs",
+    "smoke:hosts": "node scripts/smoke-hosts.mjs",
+    "smoke:hosts:model": "node scripts/smoke-hosts.mjs --model-smokes"
+  },
+  "engines": {
+    "node": ">=20"
   },
   "keywords": [
     "ai-agents",
     "agent-skills",
     "research",
     "product-strategy",
-    "multi-agent"
+    "multi-agent",
+    "agent-orchestration"
   ],
   "author": "Michael Gasperini (https://mikesoft.it)",
   "license": "MIT"

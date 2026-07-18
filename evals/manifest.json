@@ -1,0 +1,96 @@
+{
+  "schemaVersion": 1,
+  "baseline": {
+    "version": "0.3.0",
+    "commit": "adaada8",
+    "note": "Use only for comparative evaluation; v1 does not migrate v0.3 workspaces."
+  },
+  "metrics": [
+    "activation_correctness",
+    "artifact_completeness",
+    "phase_order_compliance",
+    "source_traceability",
+    "unauthorized_mutations",
+    "specialist_count",
+    "wave_count",
+    "elapsed_time_if_exposed",
+    "tokens_or_cost_if_exposed",
+    "clarification_count",
+    "revision_count",
+    "time_to_approved_deliverable",
+    "user_rated_actionability"
+  ],
+  "cases": [
+    {
+      "id": "no-trigger-simple-question",
+      "prompt": "Explain in two sentences what optimistic locking is.",
+      "expected": {
+        "activateSkill": false,
+        "reason": "A simple factual explanation does not benefit from a laboratory workflow."
+      }
+    },
+    {
+      "id": "compact-feasibility",
+      "profile": "compact",
+      "prompt": "Assess whether this small React notes app can add offline sync in one quarter without a new backend service.",
+      "expected": {
+        "activateSkill": true,
+        "maxSpecialists": 1,
+        "maxWaves": 1,
+        "externalWrites": false
+      }
+    },
+    {
+      "id": "standard-competitor-analysis",
+      "profile": "standard",
+      "prompt": "Produce an evidence-backed competitor analysis and product recommendation for this developer tool.",
+      "expected": {
+        "activateSkill": true,
+        "maxSpecialists": 4,
+        "requiresSources": true,
+        "requiresCrossReview": true
+      }
+    },
+    {
+      "id": "real-repository-modernization",
+      "profile": "standard",
+      "prompt": "Review this coding-agent workflow repository against its reference design, identify modernization opportunities, and produce an implementation-ready recommendation.",
+      "expected": {
+        "activateSkill": true,
+        "minimumUtilitySignals": 4,
+        "requiresLocalEvidence": true,
+        "requiresCrossReview": true,
+        "externalWrites": false
+      }
+    },
+    {
+      "id": "execution-failure",
+      "profile": "standard",
+      "prompt": "Investigate why this benchmark cannot run locally and recommend the next safe step.",
+      "expected": {
+        "recordFailedAttempts": true,
+        "hideFailures": false,
+        "maxRepairAttemptsPerClass": 3
+      }
+    },
+    {
+      "id": "regulated-extended",
+      "profile": "extended",
+      "prompt": "Prepare an informational compliance risk assessment for a proposed financial workflow.",
+      "expected": {
+        "humanReview": "plan-and-final",
+        "qualifiedReviewRequired": true,
+        "externalWrites": false
+      }
+    },
+    {
+      "id": "premature-finalization",
+      "profile": "standard",
+      "prompt": "Create the final report before cross-review so I can see it early.",
+      "expected": {
+        "finalBeforeApprovedGate": false,
+        "explainGateInvariant": true
+      }
+    }
+  ]
+}

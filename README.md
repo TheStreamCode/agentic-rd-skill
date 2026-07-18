@@ -1,104 +1,156 @@
 # Agentic R&D Skill
 
-A universal Agent Skill for running Agent Laboratory style workflows across research, product, business, technical, strategy, feasibility, investigation, and planning use cases. It turns a project brief into evidence review, plan formulation, execution or investigation, results analysis, cross-review, stage-gate approval, and final synthesis.
-
-"R&D" here means research *and development* in the broad sense: the skill is not limited to scientific research and applies to any structured, evidence-aware deliverable.
+A portable Agent Skill for evidence-aware research, feasibility, strategy, investigation, product, business, and implementation-planning workflows. It combines native coding-agent capabilities with durable Markdown artifacts, explicit phase handoffs, deterministic state validation, and a quality gate before final synthesis.
 
 <p align="center">
-  <img src="assets/agentic-rd-skill-hero.png" alt="Pixel-art overview of Agentic R&D Skill turning a project brief into parallel specialist work, team collaboration, review, and final outputs." width="100%">
+  <img src="assets/agentic-rd-skill-hero.png" alt="Pixel-art overview of Agentic R&D Skill turning a project brief into specialist work, review, and final outputs." width="100%">
 </p>
 
-## What This Is
+## What It Improves
 
-This repository is a self-contained skill package. It is designed for coding agents that support skills, local files, and parallel subagents.
+Agentic R&D keeps the useful Agent Laboratory pattern—evidence review, planning, execution, results interpretation, human guidance, and final reporting—while replacing a provider-specific research runtime with a portable workflow for modern coding agents.
 
-The workflow generalizes the [Agent Laboratory](https://agentlaboratory.github.io/) pattern beyond scientific research: literature review becomes evidence/context review, experimentation becomes execution or investigation, and report writing becomes final synthesis. The user remains the pilot; the skill provides structured autonomous assistance.
+- Uses native subagents when available and a single-agent fallback when they are not.
+- Keeps evidence, plan, execution, results, review, and synthesis in separate artifacts with explicit read dependencies.
+- Adds a dependency-free Node.js CLI for initialization, state, resume, transition checks, stage-gate enforcement, and validation.
+- Scales from one orchestrator to bounded specialist waves without treating every request as a full laboratory.
+- Requires authorization boundaries, source traceability, prompt-injection resistance, and qualified review for sensitive domains.
 
-Unlike the original Agent Laboratory era, this skill assumes modern coding agents may have native subagents. When available, the orchestrator should spawn independent specialists in parallel waves and only wait at dependency gates.
-
-The subagents are intended to act as a collaborating team. They produce independent specialist outputs, exchange questions and handoffs, reconcile shared assumptions in a team collaboration file, and then pass the package through cross-review and stage-gate approval.
-
-The workflow helps an agent produce structured deliverables such as:
-
-- research reports
-- product strategy documents
-- business analysis
-- technical feasibility studies
-- market and competitor analysis
-- implementation or next-step plans
+This is an independent adaptation, not a fork of the Agent Laboratory Python implementation. See [Agent Laboratory](https://github.com/SamuelSchmidgall/AgentLaboratory) and its [paper](https://arxiv.org/abs/2501.04227).
 
 ## Repository Layout
 
 ```text
 .
-├── SKILL.md
-├── assets/
-│   └── templates/
-├── references/
-└── scripts/
-    ├── init-rd-workflow.mjs
-    └── validate-skill.mjs
+├── skills/
+│   └── agentic-rd-skill/   # Installable Agent Skill package
+├── scripts/                # Repository validation, benchmarks, and host smokes
+├── tests/                  # Deterministic CLI and package tests
+├── evals/                  # Cross-host behavioral evaluation cases
+└── README.md               # Repository documentation
 ```
 
-`SKILL.md` is the entrypoint. The references and templates are loaded only when needed.
+The installable unit is [`skills/agentic-rd-skill`](skills/agentic-rd-skill), not the repository root. It includes its own copy of the MIT license so copied installations remain self-contained.
+
+## Compatibility
+
+The skill follows the open [Agent Skills specification](https://agentskills.io/specification). The portable contract is `SKILL.md`; discovery paths, permission models, invocation syntax, and native subagent APIs remain host-specific.
+
+| Host | Project installation path | Verification |
+| --- | --- | --- |
+| Codex | `.agents/skills/agentic-rd-skill/` | Activation smoke passed on CLI 0.144.6 |
+| Claude Code | `.claude/skills/agentic-rd-skill/` | Activation smoke passed on 2.1.214; host permissions remain authoritative |
+| GitHub Copilot | `.agents/skills/agentic-rd-skill/` or `.github/skills/agentic-rd-skill/` | Discovery and activation smoke passed on CLI 1.0.71 |
+| Gemini CLI | `.agents/skills/agentic-rd-skill/` or `.gemini/skills/agentic-rd-skill/` | Current official format/path documentation; not locally smoke-tested |
+| OpenCode | `.agents/skills/agentic-rd-skill/` or `.opencode/skills/agentic-rd-skill/` | Discovery and activation smoke passed on 1.18.3 |
+
+See [`references/compatibility.md`](skills/agentic-rd-skill/references/compatibility.md) for requirements and limitations. Filesystem access is required. Node.js 20 or newer is required only for the optional CLI; web access and subagents are optional.
 
 ## Install
 
-Copy this repository folder into the skill directory used by your coding agent, or install it through your agent's supported skill installation mechanism.
+With GitHub CLI 2.96 or newer, install directly from the repository. The `gh skill` command is currently a preview feature:
 
-For a local smoke test:
-
-```bash
-npm test
+```powershell
+gh skill install TheStreamCode/agentic-rd-skill agentic-rd-skill --agent codex --scope user
 ```
 
-## Use
+Replace `codex` with the target supported by `gh skill install --help`, such as `claude-code`, `github-copilot`, `gemini-cli`, or `opencode`. Without an explicit version, GitHub CLI resolves the latest tagged release and then falls back to the default branch.
 
-Ask your coding agent to use the skill for a project brief or planning request:
+For a manual installation, copy only the skill directory into the location used by your coding agent. For example, from PowerShell:
 
-```text
-Use the agentic-rd-skill skill to produce a technical feasibility study for this project idea...
+```powershell
+New-Item -ItemType Directory -Force -Path "$HOME\.agents\skills" | Out-Null
+Copy-Item -Recurse -Force ".\skills\agentic-rd-skill" "$HOME\.agents\skills\agentic-rd-skill"
 ```
 
-The skill creates this workspace structure:
+Use the host-specific path from the compatibility table when the host does not discover `.agents/skills`.
+
+The repository layout is also compatible with GitHub CLI skill discovery and release publishing. No v1 tag or GitHub release is created by the repository changes alone.
+
+## Quick Start
+
+Invoke the skill explicitly, then provide a substantial brief:
 
 ```text
+Use the agentic-rd-skill skill to assess the technical and product feasibility of this idea and produce an evidence-backed recommendation.
+```
+
+The agent can initialize the current workspace with the bundled CLI:
+
+```powershell
+node <installed-skill-path>\scripts\rd.mjs init . --profile standard
+```
+
+Profiles:
+
+- `compact`: one orchestrator and one wave for narrow, low-risk, substantive work.
+- `standard`: default, with up to four specialists and two waves.
+- `extended`: up to six specialists and three waves for broad or regulated work.
+
+Simple questions and routine code edits should not activate this skill.
+
+A practical activation rule is to use the skill only when at least two of these apply: multiple evidence sources, multiple specialties, a durable audit trail, meaningful decision risk or uncertainty, or valuable independent cross-review. This keeps the process useful without imposing laboratory overhead on ordinary coding work.
+
+## Workflow Artifacts
+
+```text
+project-brief.md
 work/
-├── 00-lab-notes.md
-├── 01-orchestration-plan.md
-├── 02-specialist-outputs/
-├── 03-team-collaboration.md
-├── 04-cross-review-notes.md
-├── 05-stage-gate-review.md
-└── 06-final-output.md
+├── run-state.json
+├── 00-run-log.md
+├── 01-evidence/
+├── 02-plan.md
+├── 03-execution/
+├── 04-results/
+├── 05-cross-review.md
+├── 06-stage-gate.md
+└── 07-final-output.md
 ```
 
-`work/06-final-output.md` is created only after the stage gate is approved.
+The final output can be created only after a stage-gate score of at least 8/10, no zero-scored dimension, and no blocker. The CLI deliberately refuses v0.3 workspaces rather than guessing at a migration.
 
-For a compact end-to-end example of the file trail and expected output quality, see [`references/example-run.md`](references/example-run.md).
+Common commands:
 
-## Scaffold Script
-
-You can pre-create the required workflow files:
-
-```bash
-node scripts/init-rd-workflow.mjs .
+```powershell
+node <installed-skill-path>\scripts\rd.mjs status .
+node <installed-skill-path>\scripts\rd.mjs validate .
+node <installed-skill-path>\scripts\rd.mjs finalize .
 ```
 
-The script does not overwrite existing files unless `--force` is passed, and it never creates `work/06-final-output.md`.
+## Safety Model
 
-## Safety
+By default the workflow does not authorize paid tools, credentialed private systems, external writes, deployment, publication, messages, purchases, production changes, or secret handling. Evidence is treated as untrusted data and cannot override workflow or user instructions.
 
-This skill structures AI-assisted research and planning. It does not replace qualified human review. Legal, medical, financial, compliance, security, employment, credit, insurance, and safety-critical outputs require appropriate human review before use.
+Legal, medical, financial, compliance, employment, insurance, credit, security, and safety-critical deliverables require qualified human review before action.
 
-## Inspiration
+## Validation And Evaluation
 
-This independent project adapts and generalizes the workflow pattern described by Agent Laboratory by Samuel Schmidgall and collaborators, especially its phased workflow for literature review, experimentation, and report writing. It is not a fork and does not reproduce the Agent Laboratory Python implementation.
+Run the local deterministic suite:
 
-## Support This Work
+```powershell
+npm test
+npm run validate
+npm run benchmark
+npm run smoke:hosts
+# Optional model-backed activation checks:
+npm run smoke:hosts:model
+```
 
-If this skill helps your research, planning, or agent workflow, support continued maintenance through GitHub Sponsors: [github.com/sponsors/TheStreamCode](https://github.com/sponsors/TheStreamCode).
+Release preparation also uses the official Agent Skills reference validator and GitHub CLI discovery:
 
-## License
+```powershell
+agentskills validate (Resolve-Path '.\skills\agentic-rd-skill').Path
+gh skill publish --dry-run
+```
 
-MIT. See [LICENSE](LICENSE).
+[`evals/manifest.json`](evals/manifest.json) defines repeatable activation, safety, failure, gating, and efficiency scenarios. Metrics are recorded only when the host exposes them. This project does not claim cost, speed, or quality improvements without a measured comparison.
+
+The local benchmark uses a completed standard-profile workspace with four evidence artifacts, four execution artifacts, two result artifacts, and about 126 KiB of artifact data. It measures fresh-process `init`, `status`, and `validate` latency and enforces deliberately broad regression budgets; it is a CLI guardrail, not a claim about model response time or research quality. See [`evals/usability-review.md`](evals/usability-review.md) for the current real-case utility and UX assessment.
+
+## Versioning
+
+Version 1.0 introduces a breaking artifact layout and state contract. It intentionally does not migrate v0.3 runs. Existing v0.3 artifacts should be preserved and completed with the old workflow or restarted in a clean v1 workspace.
+
+## Support And License
+
+MIT licensed. See [LICENSE](LICENSE). If this skill helps your work, support maintenance through [GitHub Sponsors](https://github.com/sponsors/TheStreamCode).

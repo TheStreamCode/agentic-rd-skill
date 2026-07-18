@@ -1,25 +1,27 @@
 # Contributing
 
-Contributions should keep this repository focused on the skill package.
+Contributions should preserve portability, deterministic safety checks, and progressive disclosure.
 
 ## Guidelines
 
-- Keep `SKILL.md` concise and action-oriented.
-- Put detailed workflow guidance in `references/`.
-- Put reusable Markdown formats in `assets/templates/`.
-- Put deterministic helper logic in `scripts/`.
-- Do not reintroduce the old standalone prompt-library directories.
-- Run validation before opening a pull request:
+- Keep the installable package under `skills/agentic-rd-skill/`.
+- Keep `SKILL.md` concise and action-oriented; place detailed guidance in one-level `references/` files.
+- Put reusable output templates in `assets/` and deterministic workflow logic in `scripts/` inside the skill.
+- Do not add host-specific tool pre-approvals to portable frontmatter.
+- Preserve the phase dependency order and single-writer run log.
+- Do not add migration behavior, force-overwrite options, provider SDKs, or external mutations without an explicit design decision.
+- Update tests, README, changelog, metadata, and evaluation cases when public behavior changes.
 
-```bash
+## Validation
+
+Run:
+
+```powershell
 npm test
+npm run validate
+npm run benchmark
+agentskills validate (Resolve-Path '.\skills\agentic-rd-skill').Path
+gh skill publish --dry-run
 ```
 
-## Pull Requests
-
-Pull requests should explain:
-
-- what workflow behavior changed
-- which files were updated
-- how the change was validated
-- whether any safety or human-review guidance changed
+Pull requests should explain the behavior changed, compatibility impact, safety impact, and verification evidence. Do not include AI attribution or generated-by footers.

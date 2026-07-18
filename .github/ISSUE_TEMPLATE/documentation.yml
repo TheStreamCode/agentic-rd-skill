@@ -15,6 +15,6 @@ body:
     id: file
     attributes:
       label: Relevant file
-      placeholder: README.md, SKILL.md, references/workflow.md
+      placeholder: README.md, skills/agentic-rd-skill/SKILL.md, references/workflow.md
     validations:
       required: false

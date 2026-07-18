@@ -1,5 +1,5 @@
 name: Bug report
-description: Report a problem with the skill package or scaffold script.
+description: Report a problem with the skill package, workflow state, or CLI.
 title: "[Bug]: "
 labels:
   - bug
@@ -21,6 +21,6 @@ body:
     id: validation
     attributes:
       label: Validation output
-      description: Include `npm test` output if relevant.
+      description: Include `npm test`, `rd.mjs validate`, or host activation output when relevant. Redact secrets.
     validations:
       required: false

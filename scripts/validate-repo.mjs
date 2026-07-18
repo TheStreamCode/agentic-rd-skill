@@ -1,0 +1,211 @@
+#!/usr/bin/env node
+
+import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
+import path from 'node:path';
+import process from 'node:process';
+import { fileURLToPath } from 'node:url';
+
+const scriptPath = fileURLToPath(import.meta.url);
+const repositoryRoot = path.resolve(path.dirname(scriptPath), '..');
+
+const REQUIRED_SKILL_FILES = [
+  'SKILL.md',
+  'LICENSE',
+  'references/workflow.md',
+  'references/roles.md',
+  'references/quality-and-safety.md',
+  'references/compatibility.md',
+  'references/laboratory-model.md',
+  'references/example-run.md',
+  'scripts/rd.mjs',
+  'assets/project-brief.md',
+  'assets/run-log.md',
+  'assets/evidence.md',
+  'assets/plan.md',
+  'assets/execution.md',
+  'assets/results.md',
+  'assets/cross-review.md',
+  'assets/stage-gate.md',
+  'assets/final-output.md'
+];
+
+const REQUIRED_ROOT_FILES = [
+  'README.md',
+  'LICENSE',
+  'CHANGELOG.md',
+  'CONTRIBUTING.md',
+  'SECURITY.md',
+  'CODE_OF_CONDUCT.md',
+  'CITATION.cff',
+  'package.json',
+  '.editorconfig',
+  '.gitattributes',
+  '.gitignore',
+  '.github/dependabot.yml',
+  '.github/FUNDING.yml',
+  '.github/PULL_REQUEST_TEMPLATE.md',
+  '.github/ISSUE_TEMPLATE/bug_report.yml',
+  '.github/ISSUE_TEMPLATE/documentation.yml',
+  '.github/ISSUE_TEMPLATE/skill_improvement.yml',
+  '.github/workflows/ci.yml',
+  'evals/manifest.json',
+  'evals/usability-review.md',
+  'scripts/benchmark.mjs',
+  'scripts/smoke-hosts.mjs',
+  'tests/package.test.mjs',
+  'tests/rd-cli.test.mjs'
+];
+
+function readText(filePath) {
+  return readFileSync(filePath, 'utf8').replaceAll('\r\n', '\n');
+}
+
+function parseScalarFrontmatter(text) {
+  const match = text.match(/^---\n([\s\S]*?)\n---\n/);
+  if (!match) return null;
+  const values = {};
+  for (const line of match[1].split('\n')) {
+    if (/^\s/.test(line)) continue;
+    const separator = line.indexOf(':');
+    if (separator > 0) values[line.slice(0, separator).trim()] = line.slice(separator + 1).trim();
+  }
+  return { raw: match[1], values };
+}
+
+function markdownFiles(root) {
+  const files = [];
+  const ignoredDirectories = new Set(['.git', 'node_modules', 'work']);
+  const visit = (directory) => {
+    for (const [name, entry] of Object.entries(importDirectory(directory))) {
+      if (entry.directory && !ignoredDirectories.has(name)) visit(entry.path);
+      else if (entry.path.toLowerCase().endsWith('.md')) files.push(entry.path);
+    }
+  };
+  visit(root);
+  return files;
+}
+
+function importDirectory(directory) {
+  const entries = {};
+  for (const name of readdirSync(directory)) {
+    const entryPath = path.join(directory, name);
+    const stats = statSync(entryPath);
+    entries[name] = { path: entryPath, directory: stats.isDirectory() };
+  }
+  return entries;
+}
+
+export function validateRepository(root = repositoryRoot) {
+  const failures = [];
+  const skillRoot = path.join(root, 'skills', 'agentic-rd-skill');
+  const fail = (message) => failures.push(message);
+
+  for (const relativePath of REQUIRED_ROOT_FILES) {
+    const fullPath = path.join(root, relativePath);
+    if (!existsSync(fullPath) || !statSync(fullPath).isFile()) fail(`Missing repository file: ${relativePath}`);
+  }
+  for (const relativePath of REQUIRED_SKILL_FILES) {
+    const fullPath = path.join(skillRoot, relativePath);
+    if (!existsSync(fullPath) || !statSync(fullPath).isFile()) fail(`Missing skill file: ${relativePath}`);
+  }
+
+  for (const legacyPath of [
+    'SKILL.md',
+    'scripts/init-rd-workflow.mjs',
+    'scripts/validate-skill.mjs'
+  ]) {
+    if (existsSync(path.join(root, legacyPath))) fail(`Legacy v0.3 path remains: ${legacyPath}`);
+  }
+
+  const skillPath = path.join(skillRoot, 'SKILL.md');
+  if (existsSync(skillPath)) {
+    const skillText = readText(skillPath);
+    const frontmatter = parseScalarFrontmatter(skillText);
+    if (!frontmatter) {
+      fail('SKILL.md must start with YAML frontmatter');
+    } else {
+      const { values, raw } = frontmatter;
+      if (values.name !== 'agentic-rd-skill') fail('SKILL.md name must be agentic-rd-skill');
+      if (!values.description || values.description.length > 1024) fail('SKILL.md description must be 1-1024 characters');
+      if (!values.compatibility || values.compatibility.length > 500) fail('SKILL.md compatibility must be 1-500 characters');
+      if (values.license !== 'MIT') fail('SKILL.md license must be MIT');
+      if (/^allowed-tools\s*:/m.test(raw)) fail('Portable SKILL.md must not pre-approve host-specific tools');
+      if (!/^\s{2}version:\s*"1\.0\.0"\s*$/m.test(raw)) fail('SKILL.md metadata version must be 1.0.0');
+    }
+    if (skillText.split('\n').length > 500) fail('SKILL.md must remain under 500 lines');
+    for (const requiredReference of [
+      'references/workflow.md',
+      'references/roles.md',
+      'references/quality-and-safety.md',
+      'references/compatibility.md',
+      'references/example-run.md',
+      'scripts/rd.mjs'
+    ]) {
+      if (!skillText.includes(requiredReference)) fail(`SKILL.md must reference ${requiredReference}`);
+    }
+  }
+
+  const packagePath = path.join(root, 'package.json');
+  if (existsSync(packagePath)) {
+    const packageJson = JSON.parse(readText(packagePath));
+    if (packageJson.version !== '1.0.0') fail('package.json version must be 1.0.0');
+    if (packageJson.engines?.node !== '>=20') fail('package.json must require Node.js >=20');
+    if (packageJson.scripts?.test !== 'node --test') fail('package.json test script must run node --test');
+    if (packageJson.scripts?.benchmark !== 'node scripts/benchmark.mjs') {
+      fail('package.json benchmark script must run scripts/benchmark.mjs');
+    }
+  }
+
+  const citationPath = path.join(root, 'CITATION.cff');
+  if (existsSync(citationPath) && !/^version:\s*"1\.0\.0"\s*$/m.test(readText(citationPath))) {
+    fail('CITATION.cff version must be 1.0.0');
+  }
+
+  const rootLicensePath = path.join(root, 'LICENSE');
+  const skillLicensePath = path.join(skillRoot, 'LICENSE');
+  if (
+    existsSync(rootLicensePath)
+    && existsSync(skillLicensePath)
+    && readText(rootLicensePath) !== readText(skillLicensePath)
+  ) {
+    fail('Bundled skill LICENSE must match the repository LICENSE');
+  }
+
+  if (existsSync(root)) {
+    for (const markdownPath of markdownFiles(root)) {
+      const content = readText(markdownPath);
+      const links = content.matchAll(/\[[^\]]*\]\((?!https?:\/\/|mailto:|#)([^)#]+)(?:#[^)]+)?\)/g);
+      for (const match of links) {
+        const target = path.resolve(path.dirname(markdownPath), match[1]);
+        if (!existsSync(target)) {
+          fail(`Broken local link in ${path.relative(root, markdownPath)}: ${match[1]}`);
+        }
+      }
+    }
+  }
+
+  const evalPath = path.join(root, 'evals', 'manifest.json');
+  if (existsSync(evalPath)) {
+    try {
+      const manifest = JSON.parse(readText(evalPath));
+      if (manifest.schemaVersion !== 1) fail('eval manifest schemaVersion must be 1');
+      if (!Array.isArray(manifest.cases) || manifest.cases.length < 5) fail('eval manifest must contain at least five cases');
+    } catch (error) {
+      fail(`Invalid eval manifest: ${error.message}`);
+    }
+  }
+
+  return failures;
+}
+
+function run() {
+  const failures = validateRepository();
+  if (failures.length > 0) {
+    console.error('Repository validation failed:');
+    for (const failure of failures) console.error(`- ${failure}`);
+    process.exit(1);
+  }
+  console.log('Repository validation passed.');
+}
+
+if (path.resolve(process.argv[1] ?? '') === scriptPath) run();

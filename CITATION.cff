@@ -5,6 +5,5 @@ authors:
   - family-names: Gasperini
     given-names: Michael
 url: "https://github.com/TheStreamCode/agentic-rd-skill"
-version: "0.3.0"
-date-released: "2026-06-12"
+version: "1.0.0"
 license: MIT

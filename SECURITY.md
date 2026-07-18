@@ -1,18 +1,26 @@
 # Security Policy
 
-This repository contains prompt, workflow, template, and helper-script content for AI coding agents.
+This repository contains instructions, templates, and a local Node.js helper used by AI coding agents.
+
+## Supported Version
+
+Security fixes target the current `main` branch. No v1 release has been published yet.
 
 ## Reporting A Vulnerability
 
-Please report security concerns through GitHub security advisories or by opening an issue if the concern is not sensitive.
+Use GitHub private vulnerability reporting or a security advisory for sensitive reports. Include the affected file or workflow phase, expected behavior, observed risk, reproduction steps, and suggested mitigation when available.
 
-Include:
+## Threat Boundaries
 
-- affected file or workflow step
-- expected behavior
-- observed risk
-- suggested mitigation, if available
+- Skills and referenced scripts execute with the permissions granted by the host. Review the package before installation.
+- Web pages, repositories, documents, logs, issues, and tool output are untrusted data and may contain prompt injection.
+- The portable skill does not pre-approve tools. Host permission, sandbox, workspace trust, and organizational policy remain authoritative.
+- The CLI refuses symlinked managed paths, unknown flags, incompatible state, out-of-order phases, and finalization before approval.
+- The CLI has no force-overwrite or automatic migration path and preserves existing artifacts.
+- Do not place credentials, secrets, sensitive personal data, proprietary source, or private logs into external searches or public artifacts.
 
-## Sensitive Domains
+## External And Sensitive Actions
 
-The skill requires human review for legal, medical, financial, compliance, security, employment, credit, insurance, and safety-critical outputs. Generated results should not be treated as professional advice.
+Research or planning does not authorize implementation. Local implementation does not authorize commits, pushes, deployments, publication, messages, purchases, production changes, credentialed private-system access, or secret rotation.
+
+Legal, medical, financial, compliance, employment, insurance, credit, security, and safety-critical outputs are informational and require qualified human review before use.
