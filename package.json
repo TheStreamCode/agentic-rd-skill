@@ -24,11 +24,20 @@
   },
   "keywords": [
     "ai-agents",
+    "ai-research",
     "agent-skills",
+    "research-agent",
     "research",
     "product-strategy",
     "multi-agent",
-    "agent-orchestration"
+    "agent-orchestration",
+    "coding-agents",
+    "codex",
+    "claude-code",
+    "github-copilot",
+    "gemini-cli",
+    "opencode",
+    "agent-laboratory"
   ],
   "author": "Michael Gasperini (https://mikesoft.it)",
   "license": "MIT"

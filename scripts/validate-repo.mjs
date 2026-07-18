@@ -154,6 +154,11 @@ export function validateRepository(root = repositoryRoot) {
     if (packageJson.scripts?.benchmark !== 'node scripts/benchmark.mjs') {
       fail('package.json benchmark script must run scripts/benchmark.mjs');
     }
+    const keywords = packageJson.keywords ?? [];
+    if (new Set(keywords).size !== keywords.length) fail('package.json keywords must be unique');
+    for (const keyword of ['agent-skills', 'ai-research', 'research-agent', 'codex', 'claude-code']) {
+      if (!keywords.includes(keyword)) fail(`package.json keywords must include ${keyword}`);
+    }
   }
 
   const citationPath = path.join(root, 'CITATION.cff');

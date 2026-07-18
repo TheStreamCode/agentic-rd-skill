@@ -17,6 +17,8 @@
 - Added a host compatibility matrix for Codex, Claude Code, GitHub Copilot, Gemini CLI, and OpenCode.
 - Added a realistic CLI performance benchmark with CI regression budgets and a documented utility/UX review.
 - Added GitHub CLI installation guidance alongside the manual installation path.
+- Added discoverability-focused README sections for real use cases, workflow steps, Agent Laboratory comparison, FAQs, maintainer attribution, and search intent coverage.
+- Expanded repository and package metadata for GitHub, traditional search, and AI search discovery without keyword stuffing.
 
 ### Changed
 
