@@ -10,6 +10,25 @@ permissions:
   contents: read
 
 jobs:
+  # Produces the `validate` check that branch protection requires. The script
+  # existed but was never run in CI, so the required context never appeared and
+  # every pull request stayed blocked on a check that could not arrive.
+  validate:
+    name: validate
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22
+
+      - name: Validate repository layout
+        run: npm run validate
+
   test:
     name: Node ${{ matrix.node }} on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
