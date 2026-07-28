@@ -41,7 +41,6 @@ const REQUIRED_ROOT_FILES = [
   '.editorconfig',
   '.gitattributes',
   '.gitignore',
-  '.github/dependabot.yml',
   '.github/FUNDING.yml',
   '.github/PULL_REQUEST_TEMPLATE.md',
   '.github/ISSUE_TEMPLATE/bug_report.yml',
