@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [1.0.0] - 2026-07-31
+
 ### Breaking
 
 - Repackaged the installable skill under `skills/agentic-rd-skill/` for standard discovery and publishing.

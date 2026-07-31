@@ -4,7 +4,7 @@ This repository contains instructions, templates, and a local Node.js helper use
 
 ## Supported Version
 
-Security fixes target the current `main` branch. No v1 release has been published yet.
+Security fixes target the latest published v1 release and the current `main` branch.
 
 ## Reporting A Vulnerability
 

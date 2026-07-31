@@ -109,7 +109,7 @@ Copy-Item -Recurse -Force ".\skills\agentic-rd-skill" "$HOME\.agents\skills\agen
 
 Use the host-specific path from the compatibility table when the host does not discover `.agents/skills`.
 
-The repository layout is also compatible with GitHub CLI skill discovery and release publishing. No v1 tag or GitHub release is created by the repository changes alone.
+The repository layout is compatible with GitHub CLI skill discovery and release publishing. Tagged releases provide immutable version selection; without an explicit version, GitHub CLI resolves the latest release before falling back to the default branch.
 
 ## Quick Start: Run an AI Research Workflow
 
@@ -221,7 +221,7 @@ The stage gate scores alignment, evidence quality, execution correctness, risk a
 
 ## Maintainer, Citation, and Support
 
-Agentic R&D Skill is maintained by [Michael Gasperini (Mikesoft)](https://mikesoft.it) through [TheStreamCode](https://github.com/TheStreamCode). The workflow, compatibility matrix, and benchmarks were last validated on July 18, 2026.
+Agentic R&D Skill is maintained by [Michael Gasperini (Mikesoft)](https://mikesoft.it) through [TheStreamCode](https://github.com/TheStreamCode). The workflow, compatibility matrix, and benchmarks were last validated on July 31, 2026.
 
 For academic or published use, cite the project using [`CITATION.cff`](CITATION.cff). Contributions are welcome through the [contribution guide](CONTRIBUTING.md), and security issues should follow the [security policy](SECURITY.md).
 
