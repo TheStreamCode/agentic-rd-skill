@@ -42,13 +42,16 @@ const REQUIRED_ROOT_FILES = [
   '.gitattributes',
   '.gitignore',
   '.github/FUNDING.yml',
+  '.github/CODEOWNERS',
   '.github/PULL_REQUEST_TEMPLATE.md',
+  '.github/ISSUE_TEMPLATE/config.yml',
   '.github/ISSUE_TEMPLATE/bug_report.yml',
   '.github/ISSUE_TEMPLATE/documentation.yml',
   '.github/ISSUE_TEMPLATE/skill_improvement.yml',
   '.github/workflows/ci.yml',
   'evals/manifest.json',
   'evals/usability-review.md',
+  'requirements-validation.txt',
   'scripts/benchmark.mjs',
   'scripts/smoke-hosts.mjs',
   'tests/package.test.mjs',
@@ -150,6 +153,9 @@ export function validateRepository(root = repositoryRoot) {
     if (packageJson.version !== '1.0.0') fail('package.json version must be 1.0.0');
     if (packageJson.engines?.node !== '>=20') fail('package.json must require Node.js >=20');
     if (packageJson.scripts?.test !== 'node --test') fail('package.json test script must run node --test');
+    if (packageJson.scripts?.check !== 'npm run validate && npm test && npm run benchmark') {
+      fail('package.json check script must run validation, tests, and benchmark');
+    }
     if (packageJson.scripts?.benchmark !== 'node scripts/benchmark.mjs') {
       fail('package.json benchmark script must run scripts/benchmark.mjs');
     }
@@ -157,6 +163,17 @@ export function validateRepository(root = repositoryRoot) {
     if (new Set(keywords).size !== keywords.length) fail('package.json keywords must be unique');
     for (const keyword of ['agent-skills', 'ai-research', 'research-agent', 'codex', 'claude-code']) {
       if (!keywords.includes(keyword)) fail(`package.json keywords must include ${keyword}`);
+    }
+  }
+
+  for (const workflowPath of ['.github/workflows/ci.yml']) {
+    const fullPath = path.join(root, workflowPath);
+    if (!existsSync(fullPath)) continue;
+    const workflow = readText(fullPath);
+    for (const match of workflow.matchAll(/^\s*-?\s*uses:\s*[^@\s]+@([^\s#]+)/gm)) {
+      if (!/^[0-9a-f]{40}$/.test(match[1])) {
+        fail(`${workflowPath} must pin actions to full commit SHAs`);
+      }
     }
   }
 

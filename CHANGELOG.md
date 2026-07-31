@@ -19,6 +19,7 @@
 - Added GitHub CLI installation guidance alongside the manual installation path.
 - Added discoverability-focused README sections for real use cases, workflow steps, Agent Laboratory comparison, FAQs, maintainer attribution, and search intent coverage.
 - Expanded repository and package metadata for GitHub, traditional search, and AI search discovery without keyword stuffing.
+- Added a single `npm run check` quality gate, pinned validation dependencies, CODEOWNERS, and guided issue routing.
 
 ### Changed
 
@@ -26,6 +27,14 @@
 - Replaced the heading-based validator with stateful behavior and repository tests.
 - Removed broad host-specific `allowed-tools` pre-approval from skill frontmatter.
 - Improved CLI UX with lazy phase templates, readable phase aliases, actionable status output, and explicit stale-final recovery.
+- Pinned GitHub Actions to immutable commits, disabled persisted checkout credentials, bounded job runtimes, and added an aggregate CI quality check.
+- Removed the obsolete writable Dependabot auto-merge workflow after version updates were disabled.
+
+### Security
+
+- Made workflow-state updates atomic so interrupted writes preserve the previous valid state.
+- Rejected symlinked Markdown artifacts and non-file template conflicts instead of following or silently keeping them.
+- Rejected numeric CLI values outside JavaScript's safe integer range.
 
 ## 0.3.0
 

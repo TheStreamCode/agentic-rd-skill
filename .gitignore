@@ -1,8 +1,11 @@
 node_modules/
+.venv/
 /work/
 /project-brief.md
 .DS_Store
 Thumbs.db
 *.log
+coverage/
+*.lcov
 .env
 .env.*

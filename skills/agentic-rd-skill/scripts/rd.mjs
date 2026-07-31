@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 
+import { randomUUID } from 'node:crypto';
 import {
   copyFileSync,
   existsSync,
@@ -7,7 +8,9 @@ import {
   mkdirSync,
   readFileSync,
   readdirSync,
+  renameSync,
   statSync,
+  unlinkSync,
   writeFileSync
 } from 'node:fs';
 import path from 'node:path';
@@ -176,7 +179,12 @@ function ensureManagedDirectory(workspace, relativePath, dryRun = false) {
 function copyTemplateIfMissing(workspace, templateName, relativePath, dryRun = false) {
   const destination = resolveManagedPath(workspace, relativePath);
   assertNoSymlinkComponents(workspace, destination);
-  if (existsSync(destination)) return false;
+  if (existsSync(destination)) {
+    if (!lstatSync(destination).isFile()) {
+      throw new CliError(`Expected a regular file: ${destination}`, EXIT.FILESYSTEM);
+    }
+    return false;
+  }
   ensureManagedDirectory(workspace, path.dirname(relativePath), dryRun);
   if (!dryRun) copyFileSync(path.join(assetsRoot, templateName), destination);
   return true;
@@ -186,7 +194,22 @@ function writeManagedJson(workspace, relativePath, value) {
   const destination = resolveManagedPath(workspace, relativePath);
   assertNoSymlinkComponents(workspace, destination);
   ensureManagedDirectory(workspace, path.dirname(relativePath));
-  writeFileSync(destination, `${JSON.stringify(value, null, 2)}\n`, 'utf8');
+  const temporaryPath = resolveManagedPath(
+    workspace,
+    `${relativePath}.${process.pid}.${randomUUID()}.tmp`
+  );
+  assertNoSymlinkComponents(workspace, temporaryPath);
+  try {
+    writeFileSync(temporaryPath, `${JSON.stringify(value, null, 2)}\n`, { encoding: 'utf8', flag: 'wx' });
+    renameSync(temporaryPath, destination);
+  } catch (error) {
+    try {
+      if (existsSync(temporaryPath)) unlinkSync(temporaryPath);
+    } catch {
+      // Preserve the original write error; a stale temp file is safer than masking it.
+    }
+    throw error;
+  }
 }
 
 function readJsonFile(filePath, label) {
@@ -195,6 +218,10 @@ function readJsonFile(filePath, label) {
   } catch (error) {
     throw new CliError(`Cannot parse ${label}: ${error.message}`, EXIT.STATE);
   }
+}
+
+function isRecord(value) {
+  return value !== null && typeof value === 'object' && !Array.isArray(value);
 }
 
 function statePath(workspace) {
@@ -208,6 +235,9 @@ function readState(workspace) {
   }
   assertNoSymlinkComponents(workspace, filePath);
   const state = readJsonFile(filePath, 'work/run-state.json');
+  if (!isRecord(state)) {
+    throw new CliError('Workflow state must be a JSON object.', EXIT.STATE);
+  }
   if (state.schemaVersion !== 1 || state.workflowVersion !== '1.0') {
     throw new CliError('Unsupported workflow state version; expected v1.0.', EXIT.STATE);
   }
@@ -215,14 +245,32 @@ function readState(workspace) {
     throw new CliError(`Unknown profile in workflow state: ${state.profile}`, EXIT.STATE);
   }
   if (
-    !state.phases
-    || typeof state.phases !== 'object'
-    || !state.budgets
-    || !state.metrics
-    || !state.stageGate
+    !isRecord(state.phases)
+    || !isRecord(state.budgets)
+    || !isRecord(state.metrics)
+    || !isRecord(state.stageGate)
     || typeof state.finalStale !== 'boolean'
   ) {
     throw new CliError('Workflow state is missing required v1 fields.', EXIT.STATE);
+  }
+  if (
+    PHASES.some((phase) => typeof state.phases[phase] !== 'string')
+    || typeof state.currentPhase !== 'string'
+    || !Number.isSafeInteger(state.revisionRounds)
+    || state.revisionRounds < 0
+    || !Number.isSafeInteger(state.budgets.maxRevisionRounds)
+    || !Number.isSafeInteger(state.metrics.phaseTransitions)
+    || !Number.isSafeInteger(state.metrics.executionAttempts)
+    || !Number.isSafeInteger(state.stageGate.blockers)
+    || (state.stageGate.score !== null && !Number.isSafeInteger(state.stageGate.score))
+    || (state.stageGate.dimensions !== null && !Array.isArray(state.stageGate.dimensions))
+    || (state.stageGate.decision !== null && typeof state.stageGate.decision !== 'string')
+    || typeof state.createdAt !== 'string'
+    || typeof state.updatedAt !== 'string'
+    || typeof state.humanReview !== 'string'
+    || (state.lastReason !== null && typeof state.lastReason !== 'string')
+  ) {
+    throw new CliError('Workflow state contains invalid v1 field types.', EXIT.STATE);
   }
   return state;
 }
@@ -319,9 +367,17 @@ function listMarkdownFiles(workspace, relativeDirectory) {
   const directory = resolveManagedPath(workspace, relativeDirectory);
   assertNoSymlinkComponents(workspace, directory);
   if (!existsSync(directory) || !statSync(directory).isDirectory()) return [];
-  return readdirSync(directory)
-    .filter((name) => name.toLowerCase().endsWith('.md'))
-    .map((name) => path.join(directory, name));
+  const files = [];
+  for (const entry of readdirSync(directory, { withFileTypes: true })) {
+    if (!entry.name.toLowerCase().endsWith('.md')) continue;
+    const filePath = resolveManagedPath(workspace, path.join(relativeDirectory, entry.name));
+    assertNoSymlinkComponents(workspace, filePath);
+    if (!entry.isFile()) {
+      throw new CliError(`Expected a regular Markdown artifact: ${filePath}`, EXIT.STATE);
+    }
+    files.push(filePath);
+  }
+  return files;
 }
 
 function assertFilledFile(workspace, relativePath) {
@@ -430,7 +486,11 @@ function resetLaterPhases(state, phase, workspace) {
 function parseIntegerOption(value, name, defaultValue = undefined) {
   if (value === undefined) return defaultValue;
   if (!/^\d+$/.test(value)) throw new CliError(`--${name} must be a non-negative integer`, EXIT.USAGE);
-  return Number(value);
+  const parsed = Number(value);
+  if (!Number.isSafeInteger(parsed)) {
+    throw new CliError(`--${name} must be a safe non-negative integer`, EXIT.USAGE);
+  }
+  return parsed;
 }
 
 function parseDimensions(value, required = false) {
@@ -468,6 +528,12 @@ function commandAdvance(tokens) {
   if (status === 'pending') {
     throw new CliError('The pending status is managed internally and cannot be set with advance.', EXIT.USAGE);
   }
+  if (
+    phase !== 'stageGate'
+    && ['score', 'dimensions', 'blockers'].some((name) => parsed.options[name] !== undefined)
+  ) {
+    throw new CliError('--score, --dimensions, and --blockers are valid only for stage-gate.', EXIT.USAGE);
+  }
 
   const score = parseIntegerOption(parsed.options.score, 'score');
   const dimensions = parseDimensions(parsed.options.dimensions, phase === 'stageGate' && status === 'approved');
@@ -499,7 +565,9 @@ function commandAdvance(tokens) {
   if (status === 'needs_revision' || status === 'blocked') assertPredecessor(state, phase);
 
   if (phase === 'stageGate') {
-    if (status === 'approved') {
+    if (status === 'in_progress') {
+      state.stageGate = { decision: null, score: null, dimensions: null, blockers: 0 };
+    } else if (status === 'approved') {
       assertPredecessor(state, phase);
       assertPhaseArtifact(workspace, phase);
       if (score === undefined || score < 8 || score > 10) {
@@ -625,10 +693,25 @@ function validateState(workspace, state) {
       failures.push('Approved gate has an invalid score or blockers');
     }
   }
+  const expectedGateDecision = ['approved', 'needs_revision', 'blocked'].includes(state.phases.stageGate)
+    ? state.phases.stageGate
+    : null;
+  if (state.stageGate.decision !== expectedGateDecision) {
+    failures.push('Stage-gate decision metadata does not match its phase status');
+  }
   if (state.revisionRounds > state.budgets.maxRevisionRounds) {
     failures.push('Revision round limit exceeded');
   }
   if (state.budgets.maxRevisionRounds !== 2) failures.push('maxRevisionRounds must remain 2');
+  for (const [name, expected] of Object.entries(PROFILE_LIMITS[state.profile])) {
+    if (state.budgets[name] !== expected) failures.push(`${name} must match the ${state.profile} profile`);
+  }
+  for (const name of ['phaseTransitions', 'executionAttempts']) {
+    if (state.metrics[name] < 0) failures.push(`${name} must be a non-negative integer`);
+  }
+  if (PHASES.includes(state.currentPhase) && state.phases[state.currentPhase] === 'pending') {
+    failures.push('currentPhase cannot point to a pending phase');
+  }
   return [...new Set(failures)];
 }
 

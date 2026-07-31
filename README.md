@@ -168,9 +168,7 @@ Legal, medical, financial, compliance, employment, insurance, credit, security, 
 Run the local deterministic suite:
 
 ```powershell
-npm test
-npm run validate
-npm run benchmark
+npm run check
 npm run smoke:hosts
 # Optional model-backed activation checks:
 npm run smoke:hosts:model
@@ -179,7 +177,9 @@ npm run smoke:hosts:model
 Release preparation also uses the official Agent Skills reference validator and GitHub CLI discovery:
 
 ```powershell
-agentskills validate (Resolve-Path '.\skills\agentic-rd-skill').Path
+python -m venv .venv
+.\.venv\Scripts\python.exe -m pip install --disable-pip-version-check --only-binary=:all: --require-hashes -r requirements-validation.txt
+.\.venv\Scripts\agentskills.exe validate (Resolve-Path '.\skills\agentic-rd-skill').Path
 gh skill publish --dry-run
 ```
 

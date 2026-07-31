@@ -9,20 +9,25 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
-  # Produces the `validate` check that branch protection requires. The script
-  # existed but was never run in CI, so the required context never appeared and
-  # every pull request stayed blocked on a check that could not arrive.
+  # Fast structural feedback; the final quality job aggregates every required gate.
   validate:
     name: validate
     runs-on: ubuntu-latest
+    timeout-minutes: 5
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
 
       - name: Set up Node.js
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
         with:
           node-version: 22
 
@@ -32,6 +37,7 @@ jobs:
   test:
     name: Node ${{ matrix.node }} on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
+    timeout-minutes: 10
     strategy:
       fail-fast: false
       matrix:
@@ -49,10 +55,12 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
 
       - name: Set up Node.js
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
         with:
           node-version: ${{ matrix.node }}
 
@@ -62,20 +70,25 @@ jobs:
   specification:
     name: Agent Skills specification and discovery
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     permissions:
       contents: read
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
 
       - name: Set up Python
-        uses: actions/setup-python@v6
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
         with:
           python-version: "3.13"
 
       - name: Install official reference validator
-        run: python -m pip install skills-ref
+        run: >-
+          python -m pip install --disable-pip-version-check --only-binary=:all:
+          --require-hashes -r requirements-validation.txt
 
       - name: Validate Agent Skill specification
         run: agentskills validate "$GITHUB_WORKSPACE/skills/agentic-rd-skill"
@@ -88,15 +101,42 @@ jobs:
   performance:
     name: CLI performance guardrail
     runs-on: ubuntu-latest
+    timeout-minutes: 10
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
 
       - name: Set up Node.js
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
         with:
           node-version: 22
 
       - name: Run realistic workflow benchmark
         run: npm run benchmark
+
+  quality:
+    name: quality
+    if: always()
+    needs:
+      - validate
+      - test
+      - specification
+      - performance
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+
+    steps:
+      - name: Require every quality job to pass
+        env:
+          VALIDATE_RESULT: ${{ needs.validate.result }}
+          TEST_RESULT: ${{ needs.test.result }}
+          SPECIFICATION_RESULT: ${{ needs.specification.result }}
+          PERFORMANCE_RESULT: ${{ needs.performance.result }}
+        run: |
+          test "$VALIDATE_RESULT" = success
+          test "$TEST_RESULT" = success
+          test "$SPECIFICATION_RESULT" = success
+          test "$PERFORMANCE_RESULT" = success

@@ -4,11 +4,10 @@
 
 ## Validation
 
-- [ ] `npm test`
-- [ ] `npm run validate`
-- [ ] `npm run benchmark` when CLI, templates, or package size changes
+- [ ] `npm run check`
 - [ ] `agentskills validate <absolute-skill-path>`
 - [ ] `gh skill publish --dry-run`
+- [ ] Documentation, changelog, and evaluation cases are updated when public behavior changes
 
 ## Compatibility And Safety Notes
 
