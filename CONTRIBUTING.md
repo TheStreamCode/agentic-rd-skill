@@ -2,6 +2,17 @@
 
 Contributions should preserve portability, deterministic safety checks, and progressive disclosure.
 
+## Development Setup
+
+Use Node.js 20 or newer for the dependency-free test suite. Release validation also requires Python 3.11 or newer and GitHub CLI 2.96 or newer.
+
+Install the pinned Agent Skills reference validator into an isolated Python environment:
+
+```powershell
+python -m venv .venv
+.\.venv\Scripts\python.exe -m pip install --disable-pip-version-check --only-binary=:all: --require-hashes -r requirements-validation.txt
+```
+
 ## Guidelines
 
 - Keep the installable package under `skills/agentic-rd-skill/`.
@@ -17,10 +28,8 @@ Contributions should preserve portability, deterministic safety checks, and prog
 Run:
 
 ```powershell
-npm test
-npm run validate
-npm run benchmark
-agentskills validate (Resolve-Path '.\skills\agentic-rd-skill').Path
+npm run check
+.\.venv\Scripts\agentskills.exe validate (Resolve-Path '.\skills\agentic-rd-skill').Path
 gh skill publish --dry-run
 ```
 

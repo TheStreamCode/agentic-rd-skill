@@ -84,6 +84,17 @@ test('init is idempotent and reports existing directories accurately', (t) => {
   assert.equal(state.budgets.maxSpecialists, 1);
 });
 
+test('init rejects file-path conflicts before creating workflow state', (t) => {
+  const workspace = workspaceFor(t, 'conflict-');
+  mkdirSync(path.join(workspace, 'project-brief.md'));
+
+  const result = runCli(['init', workspace]);
+
+  assert.equal(result.status, 4);
+  assert.match(result.stderr, /Expected a regular file/);
+  assert.equal(existsSync(path.join(workspace, 'work', 'run-state.json')), false);
+});
+
 test('dry-run writes nothing', (t) => {
   const workspace = workspaceFor(t, 'dry-');
   const result = runCli(['init', workspace, '--dry-run']);
@@ -272,6 +283,75 @@ test('pending is internal-only and malformed state returns a workflow error', (t
   const malformed = runCli(['status', workspace]);
   assert.equal(malformed.status, 3);
   assert.match(malformed.stderr, /missing required v1 fields/);
+
+  writeFileSync(path.join(workspace, 'work', 'run-state.json'), 'null\n');
+  const nonObject = runCli(['status', workspace]);
+  assert.equal(nonObject.status, 3);
+  assert.match(nonObject.stderr, /must be a JSON object/);
+});
+
+test('unsafe integers and stage-gate-only options are rejected as usage errors', (t) => {
+  const workspace = initializeFilledBrief(t);
+  const unsafeInteger = runCli([
+    'advance', workspace, '--phase', 'evidence', '--status', 'in_progress',
+    '--reason', 'bounded input', '--score', '999999999999999999999999'
+  ]);
+  assert.equal(unsafeInteger.status, 2);
+  assert.match(unsafeInteger.stderr, /valid only for stage-gate/);
+
+  writeFilled(workspace, 'work/01-evidence/01-evidence.md');
+  assert.equal(runCli(['advance', workspace, '--phase', 'evidence', '--status', 'complete']).status, 0);
+  writeFilled(workspace, 'work/02-plan.md');
+  assert.equal(runCli(['advance', workspace, '--phase', 'plan', '--status', 'complete']).status, 0);
+  writeFilled(workspace, 'work/03-execution/01-execution.md');
+  assert.equal(runCli(['advance', workspace, '--phase', 'execution', '--status', 'complete']).status, 0);
+  writeFilled(workspace, 'work/04-results/01-results.md');
+  assert.equal(runCli(['advance', workspace, '--phase', 'results', '--status', 'complete']).status, 0);
+  writeFilled(workspace, 'work/05-cross-review.md');
+  assert.equal(runCli(['advance', workspace, '--phase', 'cross-review', '--status', 'complete']).status, 0);
+  writeFilled(workspace, 'work/06-stage-gate.md');
+
+  const unsafeBlockers = runCli([
+    'advance', workspace, '--phase', 'stage-gate', '--status', 'blocked',
+    '--blockers', '999999999999999999999999'
+  ]);
+  assert.equal(unsafeBlockers.status, 2);
+  assert.match(unsafeBlockers.stderr, /safe non-negative integer/);
+});
+
+test('reopening an approved stage gate clears stale decision metadata', (t) => {
+  const workspace = initializeFilledBrief(t);
+  completeThroughCrossReview(workspace);
+  assert.equal(runCli([
+    'advance', workspace, '--phase', 'stage-gate', '--status', 'approved', '--score', '8',
+    '--dimensions', '2,2,1,1,2', '--blockers', '0'
+  ]).status, 0);
+
+  const reopen = runCli(['advance', workspace, '--phase', 'stage-gate', '--status', 'in_progress']);
+  assert.equal(reopen.status, 0, reopen.stderr);
+  const state = JSON.parse(readFileSync(path.join(workspace, 'work', 'run-state.json'), 'utf8'));
+  assert.deepEqual(state.stageGate, { decision: null, score: null, dimensions: null, blockers: 0 });
+  assert.equal(runCli(['validate', workspace]).status, 0);
+});
+
+test('Markdown artifact symlinks are rejected when the platform permits symlink creation', (t) => {
+  const workspace = initializeFilledBrief(t);
+  const outside = path.join(workspaceFor(t, 'artifact-outside-'), 'outside.md');
+  writeFileSync(outside, '# External artifact\n\nMust not be followed.\n', 'utf8');
+  const linkedArtifact = path.join(workspace, 'work', '01-evidence', 'linked.md');
+  try {
+    symlinkSync(outside, linkedArtifact, 'file');
+  } catch (error) {
+    if (error.code === 'EPERM' || error.code === 'EACCES' || error.code === 'UNKNOWN') {
+      t.skip(`symlink creation unavailable: ${error.code}`);
+      return;
+    }
+    throw error;
+  }
+
+  const result = runCli(['advance', workspace, '--phase', 'evidence', '--status', 'complete']);
+  assert.equal(result.status, 4);
+  assert.match(result.stderr, /symlink/);
 });
 
 test('managed symlink paths are rejected when the platform permits symlink creation', (t) => {

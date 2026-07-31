@@ -13,6 +13,7 @@
   },
   "type": "module",
   "scripts": {
+    "check": "npm run validate && npm test && npm run benchmark",
     "test": "node --test",
     "validate": "node scripts/validate-repo.mjs",
     "benchmark": "node scripts/benchmark.mjs",
@@ -40,5 +41,6 @@
     "agent-laboratory"
   ],
   "author": "Michael Gasperini (https://mikesoft.it)",
+  "funding": "https://github.com/sponsors/TheStreamCode",
   "license": "MIT"
 }
