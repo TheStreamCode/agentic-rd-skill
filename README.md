@@ -17,7 +17,7 @@ Agentic R&D is an [Agent Skills](https://agentskills.io/specification) package t
 
 - Uses native subagents when available and a single-agent fallback when they are not.
 - Keeps evidence, plan, execution, results, review, and synthesis in separate artifacts with explicit read dependencies.
-- Adds a dependency-free Node.js CLI for initialization, state, resume, transition checks, stage-gate enforcement, and validation.
+- Adds a dependency-free Node.js CLI for initialization, state, safe artifact scaffolding, pre-mutation checks, revision proof, stage-gate enforcement, and explicit completion validation.
 - Scales from one orchestrator to bounded specialist waves without treating every request as a full laboratory.
 - Requires authorization boundaries, source traceability, prompt-injection resistance, and qualified review for sensitive domains.
 
@@ -71,14 +71,18 @@ Choose Agent Laboratory when you need its scientific experiment automation. Choo
 ├── scripts/                # Repository validation, benchmarks, and host smokes
 ├── tests/                  # Deterministic CLI and package tests
 ├── evals/                  # Cross-host behavioral evaluation cases
+├── AGENTS.md               # Repository-wide contributor/agent invariants
+├── RELEASING.md            # Maintainer release and integrity checklist
 └── README.md               # Repository documentation
 ```
 
 The installable unit is [`skills/agentic-rd-skill`](skills/agentic-rd-skill), not the repository root. It includes its own copy of the MIT license so copied installations remain self-contained.
 
+Contributors and coding agents should read [AGENTS.md](AGENTS.md) before changing runtime behavior, templates, tests, public claims, or release metadata.
+
 ## Supported AI Coding Agents
 
-The skill follows the open [Agent Skills specification](https://agentskills.io/specification). The portable contract is `SKILL.md`; discovery paths, permission models, invocation syntax, and native subagent APIs remain host-specific.
+The skill follows the open [Agent Skills specification](https://agentskills.io/specification). The portable contract is `SKILL.md`; discovery paths, permission models, invocation syntax, and native subagent APIs remain host-specific. The verification column is the dated July 18, 2026 activation snapshot, not a claim about the latest host releases.
 
 | Host           | Project installation path                                                  | Verification                                                              |
 | -------------- | -------------------------------------------------------------------------- | ------------------------------------------------------------------------- |
@@ -109,7 +113,7 @@ Copy-Item -Recurse -Force ".\skills\agentic-rd-skill" "$HOME\.agents\skills\agen
 
 Use the host-specific path from the compatibility table when the host does not discover `.agents/skills`.
 
-The repository layout is compatible with GitHub CLI skill discovery and release publishing. Tagged releases provide immutable version selection; without an explicit version, GitHub CLI resolves the latest release before falling back to the default branch.
+The repository layout is compatible with GitHub CLI skill discovery and release publishing. A tag or commit pin provides reproducible version selection; release immutability is a separate GitHub repository setting and must be verified during release preparation. Without an explicit version, GitHub CLI resolves the latest release before falling back to the default branch.
 
 ## Quick Start: Run an AI Research Workflow
 
@@ -122,7 +126,7 @@ Use the agentic-rd-skill skill to assess the technical and product feasibility o
 The agent can initialize the current workspace with the bundled CLI:
 
 ```powershell
-node <installed-skill-path>\scripts\rd.mjs init . --profile standard
+node <installed-skill-path>\scripts\rd.mjs init . --profile standard --human-review final-only
 ```
 
 Profiles:
@@ -149,13 +153,20 @@ work/
 
 The final output can be created only after a stage-gate score of at least 8/10, no zero-scored dimension, and no blocker. The CLI deliberately refuses v0.3 workspaces rather than guessing at a migration.
 
+New runs use workflow contract 1.1: setup stays in progress until the filled brief and run log pass their minimum artifact contracts. Material findings receive stable IDs and coverage tables. Existing workflow 1.0 state remains readable.
+
 Common commands:
 
 ```powershell
 node <installed-skill-path>\scripts\rd.mjs status .
-node <installed-skill-path>\scripts\rd.mjs validate .
+node <installed-skill-path>\scripts\rd.mjs artifact . --phase evidence --name security-review
+node <installed-skill-path>\scripts\rd.mjs advance . --phase evidence --status in_progress
+node <installed-skill-path>\scripts\rd.mjs advance . --phase evidence --status complete
+node <installed-skill-path>\scripts\rd.mjs validate . --json
 node <installed-skill-path>\scripts\rd.mjs finalize .
 ```
+
+`validate` reports `valid_incomplete` for a structurally valid run that still has open phases, `valid_complete` only when the final artifact and workflow are complete, and `invalid` for a broken contract. Human-review mode is auditable workflow metadata; record the actual checkpoint request, reviewer, decision, and evidence in `work/00-run-log.md` and the relevant phase artifact.
 
 ## Safety Model
 
@@ -174,6 +185,8 @@ npm run smoke:hosts
 npm run smoke:hosts:model
 ```
 
+Host smoke exits non-zero and reports `inconclusive` when no eligible host check actually runs; skipped checks are never reported as a pass.
+
 Release preparation also uses the official Agent Skills reference validator and GitHub CLI discovery:
 
 ```powershell
@@ -185,13 +198,13 @@ gh skill publish --dry-run
 
 [`evals/manifest.json`](evals/manifest.json) defines repeatable activation, safety, failure, gating, and efficiency scenarios. Metrics are recorded only when the host exposes them. This project does not claim cost, speed, or quality improvements without a measured comparison.
 
-The local benchmark uses a completed standard-profile workspace with four evidence artifacts, four execution artifacts, two result artifacts, and about 126 KiB of artifact data. It measures fresh-process `init`, `status`, and `validate` latency and enforces deliberately broad regression budgets; it is a CLI guardrail, not a claim about model response time or research quality. See [`evals/usability-review.md`](evals/usability-review.md) for the current real-case utility and UX assessment.
+The local benchmark uses a completed standard-profile workspace with four evidence artifacts, four execution artifacts, two result artifacts, and about 126 KiB of artifact data. It measures fresh-process `init`, `status`, and `validate` latency and enforces deliberately broad regression budgets; it is a CLI guardrail, not a claim about model response time or research quality. See the [v1.0.0 dogfood](evals/dogfood-v1.0.0.md) for the current real-case workflow evaluation and [`evals/usability-review.md`](evals/usability-review.md) for the earlier UX snapshot.
 
-On the current Windows reference machine, fresh-process `init`, `status`, and `validate` remained below 76 ms at p95 across Node.js 20, 22, and 24. The installable skill contains 18 files and remains below 58 KiB. These measurements cover local workflow bookkeeping, not model latency, token cost, or research quality.
+Run `npm run benchmark` for the current package size and local timing snapshot. CI enforces broad limits of 256 KiB for the installable package and p95 limits of 750 ms for `init`, 500 ms for `status`, and 750 ms for `validate`. These guardrails cover local workflow bookkeeping, not model latency, token cost, or research quality; avoiding copied point-in-time numbers prevents README drift.
 
 ## Versioning
 
-Version 1.0 introduces a breaking artifact layout and state contract. It intentionally does not migrate v0.3 runs. Existing v0.3 artifacts should be preserved and completed with the old workflow or restarted in a clean v1 workspace.
+Version 1.0 introduced the breaking artifact layout and state contract. Unreleased workflow contract 1.1 adds truthful setup state, minimum artifact headings, revision history, and pre-mutation validation while retaining read compatibility with v1.0 state. The CLI intentionally does not migrate v0.3 runs.
 
 ## Frequently Asked Questions
 
@@ -221,7 +234,7 @@ The stage gate scores alignment, evidence quality, execution correctness, risk a
 
 ## Maintainer, Citation, and Support
 
-Agentic R&D Skill is maintained by [Michael Gasperini (Mikesoft)](https://mikesoft.it) through [TheStreamCode](https://github.com/TheStreamCode). The workflow, compatibility matrix, and benchmarks were last validated on July 31, 2026.
+Agentic R&D Skill is maintained by [Michael Gasperini (Mikesoft)](https://mikesoft.it) through [TheStreamCode](https://github.com/TheStreamCode). Deterministic workflow/package checks were last rerun on July 31, 2026; the host activation matrix is a separate dated snapshot documented in the compatibility reference. Maintainers should follow [RELEASING.md](RELEASING.md) so release integrity and evidence dates are verified independently.
 
 For academic or published use, cite the project using [`CITATION.cff`](CITATION.cff). Contributions are welcome through the [contribution guide](CONTRIBUTING.md), and security issues should follow the [security policy](SECURITY.md).
 

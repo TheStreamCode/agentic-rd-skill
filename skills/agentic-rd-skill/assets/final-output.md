@@ -12,6 +12,12 @@
 
 - {{Finding with source or artifact reference.}}
 
+## Finding Coverage
+
+| Finding ID | Final Disposition | Evidence |
+| --- | --- | --- |
+| {{E-01}} | {{accepted, revised, deferred, or rejected}} | {{artifact and section}} |
+
 ## Analysis And Trade-offs
 
 {{Integrate approved results without adding unsupported claims.}}

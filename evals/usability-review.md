@@ -1,6 +1,6 @@
 # Utility And UX Review
 
-Snapshot: 2026-07-18, v1 working tree on Windows 11. This is a structured maintainer evaluation backed by automated end-to-end CLI tests and local host activation smokes. It is not an independent user study and does not establish model-quality, token-cost, or business-outcome improvements.
+Historical snapshot: 2026-07-18, v1 working tree on Windows 11. Values below are retained as dated evidence and are not current package metrics. See [`dogfood-v1.0.0.md`](dogfood-v1.0.0.md) and run `npm run benchmark` for current evidence. This is a structured maintainer evaluation, not an independent user study, and it does not establish model-quality, token-cost, or business-outcome improvements.
 
 ## Evaluation Method
 

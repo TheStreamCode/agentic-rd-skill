@@ -21,6 +21,8 @@ if (selectedHost && !validHosts.has(selectedHost)) {
 const workspace = mkdtempSync(path.join(tmpdir(), 'agentic-rd-host-smoke-'));
 const failures = [];
 const skipped = [];
+let attempted = 0;
+let passed = 0;
 
 function stripAnsi(value) {
   return value.replace(/\u001B\[[0-?]*[ -/]*[@-~]/g, '');
@@ -51,6 +53,7 @@ function commandAvailable(command) {
 }
 
 function record(name, result, expectedPattern) {
+  attempted += 1;
   const output = stripAnsi(`${result.stdout ?? ''}\n${result.stderr ?? ''}`);
   if (result.error) {
     failures.push(`${name}: ${result.error.message}`);
@@ -64,6 +67,7 @@ function record(name, result, expectedPattern) {
     failures.push(`${name}: expected discovery marker not found: ${output.trim().slice(0, 800)}`);
     return;
   }
+  passed += 1;
   console.log(`passed ${name}`);
 }
 
@@ -155,4 +159,11 @@ if (failures.length > 0) {
   for (const failure of failures) console.error(`- ${failure}`);
   process.exit(1);
 }
-console.log(runModelSmokes ? 'Host discovery and activation smokes passed.' : 'Host discovery smokes passed.');
+if (attempted === 0) {
+  console.error(`Host smoke inconclusive: zero checks executed (${skipped.length} skipped).`);
+  process.exit(3);
+}
+console.log(
+  `${runModelSmokes ? 'Host discovery and activation' : 'Host discovery'} smokes passed: `
+  + `${passed}/${attempted} checks passed, ${skipped.length} skipped.`
+);

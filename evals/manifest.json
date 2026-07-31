@@ -91,6 +91,39 @@
         "finalBeforeApprovedGate": false,
         "explainGateInvariant": true
       }
+    },
+    {
+      "id": "setup-prerequisite",
+      "profile": "compact",
+      "expected": {
+        "setupBeforeFilledBrief": "in_progress",
+        "evidenceStartBeforeFilledBrief": false,
+        "stateUnchangedOnRejection": true
+      }
+    },
+    {
+      "id": "revision-proof",
+      "profile": "standard",
+      "expected": {
+        "revisionReasonRequired": true,
+        "directUnchangedReapproval": false,
+        "explicitNoChangeDispositionAllowed": true
+      }
+    },
+    {
+      "id": "invalid-pre-mutation-state",
+      "profile": "compact",
+      "expected": {
+        "mutationAllowed": false,
+        "stateUnchangedOnRejection": true
+      }
+    },
+    {
+      "id": "zero-host-smoke",
+      "expected": {
+        "passWhenNoChecksExecute": false,
+        "result": "inconclusive"
+      }
     }
   ]
 }

@@ -2,6 +2,27 @@
 
 ## [Unreleased]
 
+### Added
+
+- Added workflow contract 1.1 with minimum phase headings, stable finding-coverage tables, safe multi-artifact scaffolding, configurable human-review metadata, and explicit valid-incomplete versus valid-complete output.
+- Added durable revision IDs, upstream-artifact fingerprints, and explicit no-change dispositions for stage-gate reapproval.
+- Added deterministic coverage for zero-host smoke behavior and the newly reproduced setup, revision-bypass, and invalid-state mutation paths.
+- Added repository-wide `AGENTS.md` instructions and a maintainer release-integrity checklist.
+
+### Changed
+
+- Setup now remains `in_progress` until the filled brief and run log are verified when evidence starts.
+- Every state-mutating CLI command now rejects a globally invalid input state before writing.
+- Host smoke reports an inconclusive non-success when every eligible check is skipped.
+- Replaced drift-prone README benchmark/package point values with executable guardrail documentation.
+- Aligned the example run, role/laboratory references, compatibility notes, contributor guidance, security policy, and GitHub templates with workflow contract 1.1.
+
+### Fixed
+
+- Prevented stage-gate reapproval from silently bypassing a requested revision.
+- Prevented `advance` and `finalize` from mutating state that fails full workflow validation.
+- Clarified protected tag/version selection versus GitHub immutable-release guarantees.
+
 ## [1.0.0] - 2026-07-31
 
 ### Breaking

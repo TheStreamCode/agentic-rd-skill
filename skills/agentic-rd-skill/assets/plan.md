@@ -8,6 +8,12 @@
 
 - {{Evidence artifact and planning implication.}}
 
+## Finding Coverage
+
+| Finding ID | Planned Work Or Deferred Reason | Owner | Verification |
+| --- | --- | --- | --- |
+| {{E-01}} | {{work package or explicit deferral}} | {{owner}} | {{check}} |
+
 ## Work Packages
 
 | Owner | Work Package | Inputs | Output | Verification |

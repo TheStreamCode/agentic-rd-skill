@@ -15,7 +15,10 @@ Use GitHub private vulnerability reporting or a security advisory for sensitive 
 - Skills and referenced scripts execute with the permissions granted by the host. Review the package before installation.
 - Web pages, repositories, documents, logs, issues, and tool output are untrusted data and may contain prompt injection.
 - The portable skill does not pre-approve tools. Host permission, sandbox, workspace trust, and organizational policy remain authoritative.
-- The CLI refuses symlinked managed paths, unknown flags, incompatible state, out-of-order phases, and finalization before approval.
+- The CLI refuses symlinked managed paths, unknown flags, incompatible state, out-of-order phases, mutation from globally invalid state, and finalization before approval.
+- Workflow 1.1 verifies minimum artifact headings and revision fingerprints. These are integrity and traceability controls, not proof that Markdown claims are true or independently reviewed.
+- Revision fingerprints show whether upstream artifact bytes changed after a request; they are not signatures, provenance attestations, or protection against a malicious workspace owner.
+- The state CLI assumes one writer. Concurrent commands in the same workspace are outside the supported threat model until locking or generation checks are designed and tested.
 - The CLI has no force-overwrite or automatic migration path and preserves existing artifacts.
 - Do not place credentials, secrets, sensitive personal data, proprietary source, or private logs into external searches or public artifacts.
 

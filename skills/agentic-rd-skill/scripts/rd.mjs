@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-import { randomUUID } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
 import {
   copyFileSync,
   existsSync,
@@ -59,6 +59,24 @@ const NORMAL_STATUSES = new Set(['pending', 'in_progress', 'complete', 'needs_re
 const GATE_STATUSES = new Set(['pending', 'in_progress', 'approved', 'needs_revision', 'blocked']);
 const FINAL_STATUSES = new Set(['pending', 'in_progress', 'complete', 'blocked']);
 const PLACEHOLDER_PATTERN = /\{\{[^}]+\}\}/;
+const SUPPORTED_WORKFLOW_VERSIONS = new Set(['1.0', '1.1']);
+const HUMAN_REVIEW_MODES = new Set(['final-only', 'plan-and-final', 'every-phase']);
+const ARTIFACT_PHASES = Object.freeze({
+  evidence: ['evidence.md', 'work/01-evidence'],
+  execution: ['execution.md', 'work/03-execution'],
+  results: ['results.md', 'work/04-results']
+});
+const REQUIRED_HEADINGS = Object.freeze({
+  projectBrief: ['# Project Brief', '## Goal', '## Success Criteria', '## Authorization Boundaries', '## Workflow Controls'],
+  runLog: ['# Run Log', '## Checkpoints', '## Wave Handoffs', '## Failed Or Repaired Attempts', '## User Review'],
+  evidence: ['## Assigned Scope', '## Findings', '## Sources', '## Risks And Unknowns', '## Questions And Handoffs'],
+  plan: ['## Goal And Success Criteria', '## Evidence Basis', '## Finding Coverage', '## Work Packages', '## Authorization And Human Gates'],
+  execution: ['## Assigned Work', '## Actions And Raw Outcomes', '## Verification', '## Failures And Repairs', '## Handoff To Results'],
+  results: ['## Inputs Reviewed', '## Observed Results', '## Finding Coverage', '## Interpretation', '## Recommendations And Handoffs'],
+  crossReview: ['## Artifacts Reviewed', '## Missing Evidence, Weak Reasoning, Or Verification Gaps', '## Required Revisions', '## Stage-Gate Guidance'],
+  stageGate: ['## Decision', '## Scoring', '## Blocking Issues', '## Required Revisions Or Approval Conditions', '## Human Review Status'],
+  final: ['## Executive Summary', '## Findings And Evidence', '## Finding Coverage', '## Recommendations', '## Verification And Workflow Metrics']
+});
 
 const scriptPath = fileURLToPath(import.meta.url);
 const skillRoot = path.resolve(path.dirname(scriptPath), '..');
@@ -75,11 +93,15 @@ function printUsage() {
   console.log(`Agentic R&D workflow CLI
 
 Usage:
-  rd.mjs init [target] [--profile compact|standard|extended] [--dry-run]
+  rd.mjs init [target] [--profile compact|standard|extended] [--human-review final-only|plan-and-final|every-phase] [--dry-run]
   rd.mjs status [target] [--json]
   rd.mjs advance [target] --phase <evidence|plan|execution|results|cross-review|stage-gate|final> --status <status> [--score N] [--dimensions 2,2,1,1,2] [--blockers N] [--reason text]
+  rd.mjs artifact [target] --phase <evidence|execution|results> --name <lowercase-slug>
   rd.mjs validate [target] [--json]
   rd.mjs finalize [target]
+
+Validation reports structural state validity separately from completed-workflow status.
+See references/workflow.md for transitions, revision resolution, and recovery.
 
 Exit codes: 0 success, 2 usage, 3 workflow state, 4 filesystem/safety.`);
 }
@@ -238,8 +260,8 @@ function readState(workspace) {
   if (!isRecord(state)) {
     throw new CliError('Workflow state must be a JSON object.', EXIT.STATE);
   }
-  if (state.schemaVersion !== 1 || state.workflowVersion !== '1.0') {
-    throw new CliError('Unsupported workflow state version; expected v1.0.', EXIT.STATE);
+  if (state.schemaVersion !== 1 || !SUPPORTED_WORKFLOW_VERSIONS.has(state.workflowVersion)) {
+    throw new CliError('Unsupported workflow state version; expected v1.0 or v1.1.', EXIT.STATE);
   }
   if (!PROFILE_LIMITS[state.profile]) {
     throw new CliError(`Unknown profile in workflow state: ${state.profile}`, EXIT.STATE);
@@ -267,26 +289,33 @@ function readState(workspace) {
     || (state.stageGate.decision !== null && typeof state.stageGate.decision !== 'string')
     || typeof state.createdAt !== 'string'
     || typeof state.updatedAt !== 'string'
-    || typeof state.humanReview !== 'string'
+    || !HUMAN_REVIEW_MODES.has(state.humanReview)
     || (state.lastReason !== null && typeof state.lastReason !== 'string')
   ) {
     throw new CliError('Workflow state contains invalid v1 field types.', EXIT.STATE);
   }
+  if (state.revisions === undefined) state.revisions = [];
+  if (state.pendingRevisionId === undefined) state.pendingRevisionId = null;
+  if (!Array.isArray(state.revisions) || (state.pendingRevisionId !== null && typeof state.pendingRevisionId !== 'string')) {
+    throw new CliError('Workflow state contains invalid revision metadata.', EXIT.STATE);
+  }
   return state;
 }
 
-function newState(profile) {
+function newState(profile, humanReview) {
   const timestamp = new Date().toISOString();
   return {
     schemaVersion: 1,
-    workflowVersion: '1.0',
+    workflowVersion: '1.1',
     profile,
     createdAt: timestamp,
     updatedAt: timestamp,
     currentPhase: 'setup',
-    humanReview: 'final-only',
-    phases: Object.fromEntries(PHASES.map((phase) => [phase, phase === 'setup' ? 'complete' : 'pending'])),
+    humanReview,
+    phases: Object.fromEntries(PHASES.map((phase) => [phase, phase === 'setup' ? 'in_progress' : 'pending'])),
     revisionRounds: 0,
+    revisions: [],
+    pendingRevisionId: null,
     stageGate: { decision: null, score: null, dimensions: null, blockers: 0 },
     finalStale: false,
     budgets: {
@@ -318,12 +347,16 @@ function detectLegacyOrForeignWork(workspace) {
 }
 
 function commandInit(tokens) {
-  const parsed = parseArguments(tokens, { profile: 'value', 'dry-run': 'boolean' });
+  const parsed = parseArguments(tokens, { profile: 'value', 'human-review': 'value', 'dry-run': 'boolean' });
   const workspace = resolveWorkspace(parsed.targetArgument);
   const dryRun = Boolean(parsed.options['dry-run']);
   const requestedProfile = parsed.options.profile;
+  const requestedHumanReview = parsed.options['human-review'];
   if (requestedProfile && !PROFILE_LIMITS[requestedProfile]) {
     throw new CliError(`Unknown profile: ${requestedProfile}`, EXIT.USAGE);
+  }
+  if (requestedHumanReview && !HUMAN_REVIEW_MODES.has(requestedHumanReview)) {
+    throw new CliError(`Unknown human-review mode: ${requestedHumanReview}`, EXIT.USAGE);
   }
 
   const existingStatePath = statePath(workspace);
@@ -339,8 +372,14 @@ function commandInit(tokens) {
         EXIT.STATE
       );
     }
+    if (requestedHumanReview && requestedHumanReview !== state.humanReview) {
+      throw new CliError(
+        `Workflow already uses human-review mode ${state.humanReview}; refusing to change it to ${requestedHumanReview}.`,
+        EXIT.STATE
+      );
+    }
   } else {
-    state = newState(requestedProfile ?? 'standard');
+    state = newState(requestedProfile ?? 'standard', requestedHumanReview ?? 'final-only');
     stateCreated = true;
   }
 
@@ -360,6 +399,7 @@ function commandInit(tokens) {
     console.log(`${dryRun ? 'would ' : ''}${created ? 'create' : 'keep'} ${item}`);
   }
   console.log(`profile ${state.profile}`);
+  console.log(`human review ${state.humanReview}`);
   console.log(dryRun ? 'dry-run complete; no files written' : 'next: complete project-brief.md, then start evidence');
 }
 
@@ -380,7 +420,15 @@ function listMarkdownFiles(workspace, relativeDirectory) {
   return files;
 }
 
-function assertFilledFile(workspace, relativePath) {
+function assertRequiredHeadings(content, relativePath, requiredHeadings = []) {
+  const headings = new Set(content.split(/\r?\n/).map((line) => line.trim()));
+  const missing = requiredHeadings.filter((heading) => !headings.has(heading));
+  if (missing.length > 0) {
+    throw new CliError(`Artifact is missing required headings (${missing.join(', ')}): ${relativePath}`, EXIT.STATE);
+  }
+}
+
+function assertFilledFile(workspace, relativePath, requiredHeadings = []) {
   const filePath = resolveManagedPath(workspace, relativePath);
   assertNoSymlinkComponents(workspace, filePath);
   if (!existsSync(filePath) || !statSync(filePath).isFile()) {
@@ -393,9 +441,10 @@ function assertFilledFile(workspace, relativePath) {
   if (PLACEHOLDER_PATTERN.test(content)) {
     throw new CliError(`Artifact still contains template placeholders: ${relativePath}`, EXIT.STATE);
   }
+  assertRequiredHeadings(content, relativePath, requiredHeadings);
 }
 
-function assertFilledDirectory(workspace, relativePath) {
+function assertFilledDirectory(workspace, relativePath, requiredHeadings = []) {
   const files = listMarkdownFiles(workspace, relativePath);
   if (files.length === 0) {
     throw new CliError(`No Markdown artifacts found in ${relativePath}`, EXIT.STATE);
@@ -406,32 +455,45 @@ function assertFilledDirectory(workspace, relativePath) {
     if (content.trim().length === 0 || PLACEHOLDER_PATTERN.test(content)) {
       throw new CliError(`Incomplete artifact: ${relativeFile}`, EXIT.STATE);
     }
+    assertRequiredHeadings(content, relativeFile, requiredHeadings);
   }
 }
 
-function assertPhaseArtifact(workspace, phase) {
+function strictHeadings(state, artifactType) {
+  return state.workflowVersion === '1.1' ? REQUIRED_HEADINGS[artifactType] : [];
+}
+
+function assertSetupReady(workspace, state) {
+  assertFilledFile(workspace, 'project-brief.md', strictHeadings(state, 'projectBrief'));
+  assertFilledFile(workspace, 'work/00-run-log.md', strictHeadings(state, 'runLog'));
+}
+
+function assertPhaseArtifact(workspace, phase, state) {
   switch (phase) {
+    case 'setup':
+      assertSetupReady(workspace, state);
+      return;
     case 'evidence':
-      assertFilledFile(workspace, 'project-brief.md');
-      assertFilledDirectory(workspace, 'work/01-evidence');
+      assertSetupReady(workspace, state);
+      assertFilledDirectory(workspace, 'work/01-evidence', strictHeadings(state, 'evidence'));
       return;
     case 'plan':
-      assertFilledFile(workspace, 'work/02-plan.md');
+      assertFilledFile(workspace, 'work/02-plan.md', strictHeadings(state, 'plan'));
       return;
     case 'execution':
-      assertFilledDirectory(workspace, 'work/03-execution');
+      assertFilledDirectory(workspace, 'work/03-execution', strictHeadings(state, 'execution'));
       return;
     case 'results':
-      assertFilledDirectory(workspace, 'work/04-results');
+      assertFilledDirectory(workspace, 'work/04-results', strictHeadings(state, 'results'));
       return;
     case 'crossReview':
-      assertFilledFile(workspace, 'work/05-cross-review.md');
+      assertFilledFile(workspace, 'work/05-cross-review.md', strictHeadings(state, 'crossReview'));
       return;
     case 'stageGate':
-      assertFilledFile(workspace, 'work/06-stage-gate.md');
+      assertFilledFile(workspace, 'work/06-stage-gate.md', strictHeadings(state, 'stageGate'));
       return;
     case 'final':
-      assertFilledFile(workspace, 'work/07-final-output.md');
+      assertFilledFile(workspace, 'work/07-final-output.md', strictHeadings(state, 'final'));
       return;
     default:
       return;
@@ -481,6 +543,35 @@ function resetLaterPhases(state, phase, workspace) {
     state.phases[laterPhase] = 'pending';
   }
   state.stageGate = { decision: null, score: null, dimensions: null, blockers: 0 };
+}
+
+function revisionArtifactPaths(workspace) {
+  const paths = ['project-brief.md', 'work/00-run-log.md'];
+  for (const directory of ['work/01-evidence', 'work/03-execution', 'work/04-results']) {
+    for (const filePath of listMarkdownFiles(workspace, directory)) {
+      paths.push(path.relative(workspace, filePath).split(path.sep).join('/'));
+    }
+  }
+  for (const relativePath of ['work/02-plan.md', 'work/05-cross-review.md']) {
+    if (existsSync(resolveManagedPath(workspace, relativePath))) paths.push(relativePath);
+  }
+  return [...new Set(paths)].sort();
+}
+
+function fingerprintRevisionArtifacts(workspace) {
+  const hash = createHash('sha256');
+  for (const relativePath of revisionArtifactPaths(workspace)) {
+    hash.update(relativePath);
+    hash.update('\0');
+    hash.update(readFileSync(resolveManagedPath(workspace, relativePath)));
+    hash.update('\0');
+  }
+  return hash.digest('hex');
+}
+
+function pendingRevision(state) {
+  if (state.pendingRevisionId === null) return null;
+  return state.revisions.find((revision) => isRecord(revision) && revision.id === state.pendingRevisionId) ?? null;
 }
 
 function parseIntegerOption(value, name, defaultValue = undefined) {
@@ -538,6 +629,22 @@ function commandAdvance(tokens) {
   const score = parseIntegerOption(parsed.options.score, 'score');
   const dimensions = parseDimensions(parsed.options.dimensions, phase === 'stageGate' && status === 'approved');
   const blockers = parseIntegerOption(parsed.options.blockers, 'blockers', 0);
+  const staleFinalRecovery = phase === 'final' && status === 'in_progress' && state.finalStale;
+  if (staleFinalRecovery && !parsed.options.reason) {
+    throw new CliError('Revising a stale final output requires --reason to record the review.', EXIT.STATE);
+  }
+  assertValidState(
+    workspace,
+    state,
+    'Refusing to mutate an invalid workflow',
+    staleFinalRecovery ? ['stale final output requires a recorded review before finalization'] : []
+  );
+
+  if (phase === 'evidence' && status === 'in_progress' && state.phases.setup !== 'complete') {
+    assertSetupReady(workspace, state);
+    state.phases.setup = 'complete';
+  }
+
   const currentIndex = PHASES.indexOf(state.currentPhase);
   const targetIndex = PHASES.indexOf(phase);
   const reopeningEarlierPhase = targetIndex < currentIndex;
@@ -559,7 +666,7 @@ function commandAdvance(tokens) {
 
   if (status === 'complete') {
     assertPredecessor(state, phase);
-    assertPhaseArtifact(workspace, phase);
+    assertPhaseArtifact(workspace, phase, state);
   }
 
   if (status === 'needs_revision' || status === 'blocked') assertPredecessor(state, phase);
@@ -569,7 +676,7 @@ function commandAdvance(tokens) {
       state.stageGate = { decision: null, score: null, dimensions: null, blockers: 0 };
     } else if (status === 'approved') {
       assertPredecessor(state, phase);
-      assertPhaseArtifact(workspace, phase);
+      assertPhaseArtifact(workspace, phase, state);
       if (score === undefined || score < 8 || score > 10) {
         throw new CliError('Stage-gate approval requires --score between 8 and 10.', EXIT.STATE);
       }
@@ -579,13 +686,47 @@ function commandAdvance(tokens) {
       if (blockers !== 0) {
         throw new CliError('Stage-gate approval requires --blockers 0.', EXIT.STATE);
       }
+      const revision = pendingRevision(state);
+      if (revision) {
+        const currentHash = fingerprintRevisionArtifacts(workspace);
+        const artifactsChanged = currentHash !== revision.baselineHash;
+        if (!artifactsChanged && !parsed.options.reason) {
+          throw new CliError(
+            `Revision ${revision.id} has no upstream artifact change; provide --reason with an explicit no-change disposition.`,
+            EXIT.STATE
+          );
+        }
+        revision.resolvedAt = new Date().toISOString();
+        revision.resolution = artifactsChanged ? 'upstream_change' : 'no_change_disposition';
+        revision.resolutionReason = parsed.options.reason ?? null;
+        revision.resolvedHash = currentHash;
+        state.pendingRevisionId = null;
+      }
       state.stageGate = { decision: 'approved', score, dimensions, blockers: 0 };
     } else if (status === 'needs_revision') {
-      assertPhaseArtifact(workspace, phase);
+      assertPhaseArtifact(workspace, phase, state);
+      if (!parsed.options.reason) {
+        throw new CliError('Stage-gate needs_revision requires --reason to record the requested change.', EXIT.STATE);
+      }
+      if (pendingRevision(state)) {
+        throw new CliError(`Revision ${state.pendingRevisionId} is still pending.`, EXIT.STATE);
+      }
       if (state.revisionRounds >= state.budgets.maxRevisionRounds) {
         throw new CliError('Revision limit reached; mark the workflow blocked.', EXIT.STATE);
       }
       state.revisionRounds += 1;
+      const revision = {
+        id: `R${state.revisionRounds}`,
+        requestedAt: new Date().toISOString(),
+        requestReason: parsed.options.reason,
+        baselineHash: fingerprintRevisionArtifacts(workspace),
+        resolvedAt: null,
+        resolution: null,
+        resolutionReason: null,
+        resolvedHash: null
+      };
+      state.revisions.push(revision);
+      state.pendingRevisionId = revision.id;
       state.stageGate = { decision: 'needs_revision', score: score ?? null, dimensions, blockers };
     } else if (status === 'blocked') {
       state.stageGate = { decision: 'blocked', score: score ?? null, dimensions, blockers: Math.max(1, blockers) };
@@ -606,7 +747,7 @@ function commandAdvance(tokens) {
     if (state.finalStale) {
       throw new CliError('Final output is stale; reopen it with in_progress and --reason before completion.', EXIT.STATE);
     }
-    assertPhaseArtifact(workspace, phase);
+    assertPhaseArtifact(workspace, phase, state);
   }
 
   let createdArtifact = null;
@@ -658,9 +799,13 @@ function validateState(workspace, state) {
   for (const phase of PHASES) {
     const status = state.phases[phase];
     if (!statusSetForPhase(phase).has(status)) failures.push(`Invalid status for ${phase}: ${status}`);
-    if (status === 'complete' || status === 'approved') capture(() => assertPhaseArtifact(workspace, phase));
+    if (status === 'complete' || status === 'approved') capture(() => assertPhaseArtifact(workspace, phase, state));
   }
-  if (state.phases.setup !== 'complete') failures.push('setup must remain complete');
+  const laterPhaseStarted = PHASES.slice(1).some((phase) => state.phases[phase] !== 'pending');
+  if (laterPhaseStarted && state.phases.setup !== 'complete') failures.push('setup must be complete before later phases start');
+  if (!laterPhaseStarted && !['in_progress', 'complete'].includes(state.phases.setup)) {
+    failures.push('setup must be in_progress or complete before evidence starts');
+  }
   if (!PHASES.includes(state.currentPhase)) failures.push(`Invalid currentPhase: ${state.currentPhase}`);
 
   for (let index = 1; index < PHASES.length; index += 1) {
@@ -681,7 +826,7 @@ function validateState(workspace, state) {
   if (state.finalStale && !existsSync(finalPath)) failures.push('finalStale is set but no final output exists');
   if (state.finalStale && state.phases.final !== 'pending') failures.push('Stale final output must remain pending');
   if (state.finalStale && state.phases.stageGate === 'approved') {
-    failures.push('Stale final output requires a recorded review before finalization');
+    failures.push('stale final output requires a recorded review before finalization');
   }
   if (state.phases.stageGate === 'approved') {
     const dimensions = state.stageGate.dimensions;
@@ -702,6 +847,55 @@ function validateState(workspace, state) {
   if (state.revisionRounds > state.budgets.maxRevisionRounds) {
     failures.push('Revision round limit exceeded');
   }
+  const revisionIds = new Set();
+  for (const revision of state.revisions) {
+    if (
+      !isRecord(revision)
+      || typeof revision.id !== 'string'
+      || typeof revision.requestedAt !== 'string'
+      || typeof revision.requestReason !== 'string'
+      || typeof revision.baselineHash !== 'string'
+      || !/^[0-9a-f]{64}$/.test(revision.baselineHash)
+      || (revision.resolvedAt !== null && typeof revision.resolvedAt !== 'string')
+      || (revision.resolution !== null && !['upstream_change', 'no_change_disposition'].includes(revision.resolution))
+      || (revision.resolutionReason !== null && typeof revision.resolutionReason !== 'string')
+      || (revision.resolvedHash !== null && !/^[0-9a-f]{64}$/.test(revision.resolvedHash))
+    ) {
+      failures.push('Revision history contains invalid metadata');
+      continue;
+    }
+    if (revisionIds.has(revision.id)) failures.push(`Duplicate revision id: ${revision.id}`);
+    revisionIds.add(revision.id);
+    const resolvedFields = [revision.resolvedAt, revision.resolution, revision.resolvedHash];
+    const resolvedCount = resolvedFields.filter((value) => value !== null).length;
+    if (resolvedCount !== 0 && resolvedCount !== resolvedFields.length) {
+      failures.push(`Revision ${revision.id} has incomplete resolution metadata`);
+    }
+  }
+  if (state.workflowVersion === '1.1' && state.revisionRounds !== state.revisions.length) {
+    failures.push('revisionRounds must match revision history length');
+  }
+  if (state.workflowVersion === '1.0' && state.revisions.length > state.revisionRounds) {
+    failures.push('revision history cannot exceed revisionRounds');
+  }
+  const unresolvedRevisions = state.revisions.filter(
+    (revision) => isRecord(revision) && revision.resolvedAt === null
+  );
+  if (state.pendingRevisionId !== null) {
+    const pending = pendingRevision(state);
+    if (!pending) failures.push('pendingRevisionId does not reference revision history');
+    else if (pending.resolvedAt !== null) failures.push('pendingRevisionId references a resolved revision');
+  }
+  if (unresolvedRevisions.length > 1) failures.push('Only one revision may be pending');
+  if (unresolvedRevisions.length === 1 && unresolvedRevisions[0].id !== state.pendingRevisionId) {
+    failures.push('Unresolved revision does not match pendingRevisionId');
+  }
+  if (state.phases.stageGate === 'needs_revision' && state.pendingRevisionId === null) {
+    failures.push('Stage gate needs_revision requires pending revision metadata');
+  }
+  if (state.phases.stageGate === 'approved' && state.pendingRevisionId !== null) {
+    failures.push('Approved stage gate cannot retain a pending revision');
+  }
   if (state.budgets.maxRevisionRounds !== 2) failures.push('maxRevisionRounds must remain 2');
   for (const [name, expected] of Object.entries(PROFILE_LIMITS[state.profile])) {
     if (state.budgets[name] !== expected) failures.push(`${name} must match the ${state.profile} profile`);
@@ -715,15 +909,36 @@ function validateState(workspace, state) {
   return [...new Set(failures)];
 }
 
+function workflowIsComplete(state) {
+  return PHASES.every((phase) => phaseIsSatisfied(state, phase));
+}
+
+function assertValidState(workspace, state, prefix = 'Workflow state or artifacts are invalid', allowedFailures = []) {
+  const allowed = new Set(allowedFailures);
+  const failures = validateState(workspace, state).filter((failure) => !allowed.has(failure));
+  if (failures.length > 0) {
+    throw new CliError(`${prefix}: ${failures.join('; ')}`, EXIT.STATE);
+  }
+}
+
 function commandValidate(tokens) {
   const parsed = parseArguments(tokens, { json: 'boolean' });
   const workspace = resolveWorkspace(parsed.targetArgument);
   const state = readState(workspace);
   const failures = validateState(workspace, state);
+  const complete = failures.length === 0 && workflowIsComplete(state);
   if (parsed.options.json) {
-    console.log(JSON.stringify({ valid: failures.length === 0, failures }, null, 2));
+    console.log(JSON.stringify({
+      valid: failures.length === 0,
+      complete,
+      status: failures.length > 0 ? 'invalid' : complete ? 'valid_complete' : 'valid_incomplete',
+      currentPhase: state.currentPhase,
+      failures
+    }, null, 2));
   } else if (failures.length === 0) {
-    console.log('Workflow validation passed.');
+    console.log(complete
+      ? 'Completed workflow validation passed.'
+      : `Workflow state is valid but incomplete (current phase: ${PHASE_LABELS[state.currentPhase]}).`);
   } else {
     console.error('Workflow validation failed:');
     for (const failure of failures) console.error(`- ${failure}`);
@@ -731,12 +946,56 @@ function commandValidate(tokens) {
   if (failures.length > 0) throw new CliError('Workflow state or artifacts are invalid.', EXIT.STATE);
 }
 
+function nextAction(state, failures = []) {
+  if (failures.length > 0) return 'run validate, reconcile the reported state/artifact failures, then retry';
+  if (workflowIsComplete(state)) return 'workflow complete';
+  if (state.phases.setup === 'in_progress') {
+    return 'complete project-brief.md and work/00-run-log.md, then start Evidence';
+  }
+  if (state.finalStale && state.phases.stageGate === 'approved') {
+    return 'review the preserved final output, then reopen Final synthesis with in_progress and --reason';
+  }
+  if (state.finalStale) return 'complete the revised phases and obtain stage-gate approval again';
+  if (state.phases.stageGate === 'approved' && state.phases.final === 'pending') {
+    return 'run finalize to create the final synthesis template';
+  }
+  const activePhase = PHASES.find((phase) => ['in_progress', 'needs_revision', 'blocked'].includes(state.phases[phase]));
+  if (state.pendingRevisionId !== null) {
+    if (activePhase && activePhase !== 'stageGate') {
+      return `complete revised ${PHASE_LABELS[activePhase]} artifacts for ${state.pendingRevisionId}, then continue through Cross-review and Stage gate`;
+    }
+    return `resolve ${state.pendingRevisionId} by changing an upstream artifact or recording an explicit no-change disposition, then rerun Stage gate`;
+  }
+  if (activePhase) {
+    const actions = {
+      evidence: 'complete evidence artifacts, reconcile wave handoffs in work/00-run-log.md, then mark Evidence complete',
+      plan: 'complete work/02-plan.md and any required plan review, then mark Plan complete',
+      execution: 'complete and verify execution artifacts, then mark Execution complete',
+      results: 'complete result artifacts with observed/inferred distinctions, then mark Results complete',
+      crossReview: 'close owned revisions in source artifacts and record them in the run log, then mark Cross-review complete',
+      stageGate: 'score all five dimensions and record Approved, Needs Revision, or Blocked',
+      final: 'complete work/07-final-output.md and required human review, then mark Final synthesis complete'
+    };
+    return actions[activePhase] ?? `resolve ${PHASE_LABELS[activePhase]}`;
+  }
+  const pendingPhase = PHASES.find((phase) => state.phases[phase] === 'pending');
+  return pendingPhase ? `start ${PHASE_LABELS[pendingPhase]} with advance --status in_progress` : 'workflow complete';
+}
+
 function commandStatus(tokens) {
   const parsed = parseArguments(tokens, { json: 'boolean' });
   const workspace = resolveWorkspace(parsed.targetArgument);
   const state = readState(workspace);
+  const failures = validateState(workspace, state);
+  const complete = failures.length === 0 && workflowIsComplete(state);
+  const action = nextAction(state, failures);
   if (parsed.options.json) {
-    console.log(JSON.stringify(state, null, 2));
+    console.log(JSON.stringify({
+      ...state,
+      workflowComplete: complete,
+      validation: { valid: failures.length === 0, failures },
+      nextAction: action
+    }, null, 2));
     return;
   }
   console.log(`profile: ${state.profile}`);
@@ -744,17 +1003,9 @@ function commandStatus(tokens) {
   for (const phase of PHASES) console.log(`${cliPhaseName(phase)}: ${state.phases[phase]}`);
   console.log(`revision rounds: ${state.revisionRounds}/${state.budgets.maxRevisionRounds}`);
   console.log(`final output stale: ${state.finalStale ? 'yes' : 'no'}`);
-  if (state.finalStale && state.phases.stageGate === 'approved') {
-    console.log('next: review the preserved final output, then reopen final with in_progress and --reason');
-  } else if (state.finalStale) {
-    console.log('next: complete the revised phases and obtain stage-gate approval again');
-  } else if (state.phases.stageGate === 'approved' && state.phases.final === 'pending') {
-    console.log('next: run finalize to create the final synthesis template');
-  } else {
-    const activePhase = PHASES.find((phase) => ['in_progress', 'needs_revision', 'blocked'].includes(state.phases[phase]));
-    const pendingPhase = PHASES.find((phase) => state.phases[phase] === 'pending');
-    console.log(`next: ${activePhase ? `resolve ${PHASE_LABELS[activePhase]}` : pendingPhase ? `start ${PHASE_LABELS[pendingPhase]}` : 'workflow complete'}`);
-  }
+  console.log(`workflow complete: ${complete ? 'yes' : 'no'}`);
+  console.log(`state valid: ${failures.length === 0 ? 'yes' : 'no'}`);
+  console.log(`next: ${action}`);
   console.log(`updated: ${state.updatedAt}`);
 }
 
@@ -762,6 +1013,7 @@ function commandFinalize(tokens) {
   const parsed = parseArguments(tokens, {});
   const workspace = resolveWorkspace(parsed.targetArgument);
   const state = readState(workspace);
+  assertValidState(workspace, state, 'Refusing to finalize an invalid workflow');
   if (state.phases.stageGate !== 'approved') {
     throw new CliError('Cannot create final output before stage-gate approval.', EXIT.STATE);
   }
@@ -782,6 +1034,28 @@ function commandFinalize(tokens) {
   console.log(`${created ? 'created' : 'kept'} work/07-final-output.md`);
 }
 
+function commandArtifact(tokens) {
+  const parsed = parseArguments(tokens, { phase: 'value', name: 'value' });
+  const workspace = resolveWorkspace(parsed.targetArgument);
+  const phase = canonicalPhase(parsed.options.phase);
+  const name = parsed.options.name;
+  if (!phase || !ARTIFACT_PHASES[phase]) {
+    throw new CliError('--phase must be one of: evidence, execution, results', EXIT.USAGE);
+  }
+  if (!name || !/^[a-z0-9][a-z0-9-]{0,63}$/.test(name)) {
+    throw new CliError('--name must be a lowercase slug using letters, numbers, and hyphens', EXIT.USAGE);
+  }
+  const state = readState(workspace);
+  assertValidState(workspace, state, 'Refusing to create an artifact in an invalid workflow');
+  if (state.phases[phase] !== 'in_progress') {
+    throw new CliError(`${PHASE_LABELS[phase]} must be in_progress before adding an artifact.`, EXIT.STATE);
+  }
+  const [templateName, directory] = ARTIFACT_PHASES[phase];
+  const relativePath = `${directory}/${name}.md`;
+  const created = copyTemplateIfMissing(workspace, templateName, relativePath);
+  console.log(`${created ? 'created' : 'kept'} ${relativePath}`);
+}
+
 function main() {
   const [command, ...tokens] = process.argv.slice(2);
   if (!command || command === '--help' || command === '-h' || command === 'help') {
@@ -797,6 +1071,9 @@ function main() {
       return;
     case 'advance':
       commandAdvance(tokens);
+      return;
+    case 'artifact':
+      commandArtifact(tokens);
       return;
     case 'validate':
       commandValidate(tokens);

@@ -31,6 +31,8 @@ const REQUIRED_SKILL_FILES = [
 
 const REQUIRED_ROOT_FILES = [
   'README.md',
+  'AGENTS.md',
+  'RELEASING.md',
   'LICENSE',
   'CHANGELOG.md',
   'CONTRIBUTING.md',
@@ -50,12 +52,14 @@ const REQUIRED_ROOT_FILES = [
   '.github/ISSUE_TEMPLATE/skill_improvement.yml',
   '.github/workflows/ci.yml',
   'evals/manifest.json',
+  'evals/dogfood-v1.0.0.md',
   'evals/usability-review.md',
   'requirements-validation.txt',
   'scripts/benchmark.mjs',
   'scripts/smoke-hosts.mjs',
   'tests/package.test.mjs',
-  'tests/rd-cli.test.mjs'
+  'tests/rd-cli.test.mjs',
+  'tests/smoke-hosts.test.mjs'
 ];
 
 function readText(filePath) {

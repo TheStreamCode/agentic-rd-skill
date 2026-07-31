@@ -21,6 +21,31 @@ body:
     id: validation
     attributes:
       label: Validation output
-      description: Include `npm test`, `rd.mjs validate`, or host activation output when relevant. Redact secrets.
+      description: Include `npm run check`, `rd.mjs status --json`, `rd.mjs validate --json`, or host activation output when relevant. Redact secrets.
     validations:
       required: false
+  - type: input
+    id: workflow_version
+    attributes:
+      label: Workflow and CLI version
+      description: Record the workflowVersion from run-state.json and the installed skill version when known.
+      placeholder: workflow 1.1, skill 1.0.0
+    validations:
+      required: false
+  - type: dropdown
+    id: mutation
+    attributes:
+      label: Did the failing command modify state or artifacts?
+      options:
+        - "No"
+        - "Yes"
+        - "Unknown"
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: Include OS, Node.js version, host CLI and version, installation path, and reproduction steps.
+    validations:
+      required: true

@@ -8,6 +8,12 @@
 
 - {{Directly observed or sourced fact.}}
 
+## Findings
+
+| Finding ID | Observation Or Claim | Evidence | Confidence |
+| --- | --- | --- | --- |
+| {{E-01}} | {{bounded finding}} | {{source or local artifact section}} | {{high, medium, or low}} |
+
 ## Sources
 
 | Source | Claim Supported | Access/Verification Note |

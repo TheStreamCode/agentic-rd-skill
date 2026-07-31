@@ -4,6 +4,7 @@ import { arch, cpus, platform, tmpdir, totalmem } from 'node:os';
 import {
   mkdtempSync,
   mkdirSync,
+  readFileSync,
   readdirSync,
   rmSync,
   statSync,
@@ -45,7 +46,20 @@ function writeFilled(workspace, relativePath, kilobytes = 1) {
   const destination = path.join(workspace, relativePath);
   mkdirSync(path.dirname(destination), { recursive: true });
   const paragraph = 'Observed evidence with a traceable source, explicit uncertainty, and a bounded recommendation.\n';
-  const content = `# Filled artifact\n\n${paragraph.repeat(Math.max(1, Math.ceil((kilobytes * 1024) / paragraph.length)))}`;
+  let templateName;
+  if (relativePath === 'project-brief.md') templateName = 'project-brief.md';
+  else if (relativePath === 'work/00-run-log.md') templateName = 'run-log.md';
+  else if (relativePath.includes('01-evidence')) templateName = 'evidence.md';
+  else if (relativePath === 'work/02-plan.md') templateName = 'plan.md';
+  else if (relativePath.includes('03-execution')) templateName = 'execution.md';
+  else if (relativePath.includes('04-results')) templateName = 'results.md';
+  else if (relativePath === 'work/05-cross-review.md') templateName = 'cross-review.md';
+  else if (relativePath === 'work/06-stage-gate.md') templateName = 'stage-gate.md';
+  else if (relativePath === 'work/07-final-output.md') templateName = 'final-output.md';
+  const template = templateName
+    ? readFileSync(path.join(skillRoot, 'assets', templateName), 'utf8').replace(/\{\{[^}]+\}\}/g, 'Verified content')
+    : '# Filled artifact\n\nVerified content.\n';
+  const content = `${template}\n${paragraph.repeat(Math.max(1, Math.ceil((kilobytes * 1024) / paragraph.length)))}`;
   writeFileSync(destination, content, 'utf8');
 }
 
