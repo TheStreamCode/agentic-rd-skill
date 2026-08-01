@@ -30,6 +30,10 @@ Workflow contract 1.1 is now released. Existing workflow 1.0 state remains reada
 - Clarified protected tag/version selection versus GitHub immutable-release guarantees.
 - Fixed the model-backed host smoke asserting a hardcoded `1.0.0` activation marker; it now reads the shipped `SKILL.md` metadata version, so a release bump can no longer make the activation check assert a version the package does not declare.
 - Fixed the repository validator's Markdown walk descending into the local `.venv` and treating the ignored local `project-brief.md` dogfood artifact as tracked source, which made link validation depend on the contributor's local environment. A directory whose name ends in `.md` is also no longer misread as a file.
+- Preflighted every managed initialization destination before the first write so a late file/directory conflict cannot leave partial scaffolding behind.
+- Rejected contradictory `currentPhase` and stage-gate decision metadata before a state-changing command can persist a newly invalid workflow.
+- Stopped repository Markdown validation from following symlinked directories and restricted disposable test copies to project-owned roots instead of ignored local files.
+- Reported malformed `package.json` content as a validation failure instead of crashing the repository validator.
 
 ### Known Issues
 

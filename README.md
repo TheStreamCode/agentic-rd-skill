@@ -198,6 +198,8 @@ gh skill publish --dry-run
 
 [`evals/manifest.json`](evals/manifest.json) defines repeatable activation, safety, failure, gating, and efficiency scenarios. Metrics are recorded only when the host exposes them. This project does not claim cost, speed, or quality improvements without a measured comparison.
 
+The dated [`v1.1.0 security review`](evals/security-review-v1.1.0.md) records the filesystem, state-integrity, secret-handling, and release-surface checks performed for this release, including residual single-writer and host-verification limitations.
+
 The local benchmark uses a completed standard-profile workspace with four evidence artifacts, four execution artifacts, two result artifacts, and about 126 KiB of artifact data. It measures fresh-process `init`, `status`, and `validate` latency and enforces deliberately broad regression budgets; it is a CLI guardrail, not a claim about model response time or research quality. See the [v1.0.0 dogfood](evals/dogfood-v1.0.0.md) for the current real-case workflow evaluation and [`evals/usability-review.md`](evals/usability-review.md) for the earlier UX snapshot.
 
 Run `npm run benchmark` for the current package size and local timing snapshot. CI enforces broad limits of 256 KiB for the installable package and p95 limits of 750 ms for `init`, 500 ms for `status`, and 750 ms for `validate`. These guardrails cover local workflow bookkeeping, not model latency, token cost, or research quality; avoiding copied point-in-time numbers prevents README drift.

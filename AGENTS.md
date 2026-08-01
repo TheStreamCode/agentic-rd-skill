@@ -32,6 +32,8 @@ When documentation and runtime behavior disagree, verify the CLI and tests, then
 - Do not hardcode the release version anywhere else. Scripts that need it must read it from `package.json` or the shipped `SKILL.md` frontmatter.
 - The CLI is single-writer. Do not introduce concurrent state mutation without a designed locking/generation protocol and cross-platform tests.
 - Preserve atomic state replacement, managed-path containment, symlink rejection, non-overwrite behavior, and explicit exit classes.
+- Preflight the complete initialization layout before the first scaffold write; a late path conflict must leave earlier missing files untouched.
+- Keep `currentPhase` equal to the latest non-pending phase and keep stage-gate score, dimensions, blockers, and decision metadata consistent with the gate status.
 - Never convert skipped or zero-execution host checks into a pass.
 
 ## Implementation Style
@@ -41,6 +43,7 @@ When documentation and runtime behavior disagree, verify the CLI and tests, then
 - Validate arguments and current state before filesystem mutation.
 - Use workspace-relative managed paths; reject traversal, symlinks, type conflicts, and unsafe slugs.
 - Preserve the previous valid `run-state.json` if a write fails.
+- Repository validators and test fixtures must not follow symlinked directories or copy ignored local workflow/secrets into disposable repository clones.
 - Keep exit codes stable: `0` success, `2` usage, `3` workflow/inconclusive state, `4` filesystem or safety failure.
 - Add focused regression tests for every reproduced defect and verify rejected mutations leave state/artifacts unchanged.
 - Do not weaken tests, hide expected failures, or rewrite unrelated user changes to make a gate pass.

@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
+import { existsSync, lstatSync, readFileSync, readdirSync } from 'node:fs';
 import path from 'node:path';
 import process from 'node:process';
 import { fileURLToPath } from 'node:url';
@@ -53,6 +53,7 @@ const REQUIRED_ROOT_FILES = [
   '.github/workflows/ci.yml',
   'evals/manifest.json',
   'evals/dogfood-v1.0.0.md',
+  'evals/security-review-v1.1.0.md',
   'evals/usability-review.md',
   'requirements-validation.txt',
   'scripts/benchmark.mjs',
@@ -64,6 +65,14 @@ const REQUIRED_ROOT_FILES = [
 
 function readText(filePath) {
   return readFileSync(filePath, 'utf8').replaceAll('\r\n', '\n');
+}
+
+function isRegularFile(filePath) {
+  try {
+    return lstatSync(filePath).isFile();
+  } catch {
+    return false;
+  }
 }
 
 function parseScalarFrontmatter(text) {
@@ -85,11 +94,12 @@ function markdownFiles(root) {
   const ignoredDirectories = new Set(['.git', '.venv', 'coverage', 'node_modules', 'work']);
   const ignoredFiles = new Set([path.join(root, 'project-brief.md')]);
   const visit = (directory) => {
-    for (const [name, entry] of Object.entries(importDirectory(directory))) {
-      if (entry.directory) {
-        if (!ignoredDirectories.has(name)) visit(entry.path);
-      } else if (entry.path.toLowerCase().endsWith('.md') && !ignoredFiles.has(entry.path)) {
-        files.push(entry.path);
+    for (const entry of readdirSync(directory, { withFileTypes: true })) {
+      const entryPath = path.join(directory, entry.name);
+      if (entry.isDirectory()) {
+        if (!ignoredDirectories.has(entry.name)) visit(entryPath);
+      } else if (entry.isFile() && entryPath.toLowerCase().endsWith('.md') && !ignoredFiles.has(entryPath)) {
+        files.push(entryPath);
       }
     }
   };
@@ -97,19 +107,9 @@ function markdownFiles(root) {
   return files;
 }
 
-function importDirectory(directory) {
-  const entries = {};
-  for (const name of readdirSync(directory)) {
-    const entryPath = path.join(directory, name);
-    const stats = statSync(entryPath);
-    entries[name] = { path: entryPath, directory: stats.isDirectory() };
-  }
-  return entries;
-}
-
 function releaseVersion(root) {
   const packagePath = path.join(root, 'package.json');
-  if (!existsSync(packagePath)) return null;
+  if (!isRegularFile(packagePath)) return null;
   try {
     const version = JSON.parse(readText(packagePath)).version;
     return typeof version === 'string' && /^\d+\.\d+\.\d+$/.test(version) ? version : null;
@@ -128,11 +128,11 @@ export function validateRepository(root = repositoryRoot) {
 
   for (const relativePath of REQUIRED_ROOT_FILES) {
     const fullPath = path.join(root, relativePath);
-    if (!existsSync(fullPath) || !statSync(fullPath).isFile()) fail(`Missing repository file: ${relativePath}`);
+    if (!isRegularFile(fullPath)) fail(`Missing repository file: ${relativePath}`);
   }
   for (const relativePath of REQUIRED_SKILL_FILES) {
     const fullPath = path.join(skillRoot, relativePath);
-    if (!existsSync(fullPath) || !statSync(fullPath).isFile()) fail(`Missing skill file: ${relativePath}`);
+    if (!isRegularFile(fullPath)) fail(`Missing skill file: ${relativePath}`);
   }
 
   for (const legacyPath of [
@@ -144,7 +144,7 @@ export function validateRepository(root = repositoryRoot) {
   }
 
   const skillPath = path.join(skillRoot, 'SKILL.md');
-  if (existsSync(skillPath)) {
+  if (isRegularFile(skillPath)) {
     const skillText = readText(skillPath);
     const frontmatter = parseScalarFrontmatter(skillText);
     if (!frontmatter) {
@@ -177,27 +177,34 @@ export function validateRepository(root = repositoryRoot) {
   }
 
   const packagePath = path.join(root, 'package.json');
-  if (existsSync(packagePath)) {
-    const packageJson = JSON.parse(readText(packagePath));
-    if (expectedVersion === null) fail('package.json version must be a semantic x.y.z string');
-    if (packageJson.engines?.node !== '>=20') fail('package.json must require Node.js >=20');
-    if (packageJson.scripts?.test !== 'node --test') fail('package.json test script must run node --test');
-    if (packageJson.scripts?.check !== 'npm run validate && npm test && npm run benchmark') {
-      fail('package.json check script must run validation, tests, and benchmark');
+  if (isRegularFile(packagePath)) {
+    let packageJson;
+    try {
+      packageJson = JSON.parse(readText(packagePath));
+    } catch (error) {
+      fail(`Invalid package.json: ${error.message}`);
     }
-    if (packageJson.scripts?.benchmark !== 'node scripts/benchmark.mjs') {
-      fail('package.json benchmark script must run scripts/benchmark.mjs');
-    }
-    const keywords = packageJson.keywords ?? [];
-    if (new Set(keywords).size !== keywords.length) fail('package.json keywords must be unique');
-    for (const keyword of ['agent-skills', 'ai-research', 'research-agent', 'codex', 'claude-code']) {
-      if (!keywords.includes(keyword)) fail(`package.json keywords must include ${keyword}`);
+    if (packageJson) {
+      if (expectedVersion === null) fail('package.json version must be a semantic x.y.z string');
+      if (packageJson.engines?.node !== '>=20') fail('package.json must require Node.js >=20');
+      if (packageJson.scripts?.test !== 'node --test') fail('package.json test script must run node --test');
+      if (packageJson.scripts?.check !== 'npm run validate && npm test && npm run benchmark') {
+        fail('package.json check script must run validation, tests, and benchmark');
+      }
+      if (packageJson.scripts?.benchmark !== 'node scripts/benchmark.mjs') {
+        fail('package.json benchmark script must run scripts/benchmark.mjs');
+      }
+      const keywords = packageJson.keywords ?? [];
+      if (new Set(keywords).size !== keywords.length) fail('package.json keywords must be unique');
+      for (const keyword of ['agent-skills', 'ai-research', 'research-agent', 'codex', 'claude-code']) {
+        if (!keywords.includes(keyword)) fail(`package.json keywords must include ${keyword}`);
+      }
     }
   }
 
   for (const workflowPath of ['.github/workflows/ci.yml']) {
     const fullPath = path.join(root, workflowPath);
-    if (!existsSync(fullPath)) continue;
+    if (!isRegularFile(fullPath)) continue;
     const workflow = readText(fullPath);
     for (const match of workflow.matchAll(/^\s*-?\s*uses:\s*[^@\s]+@([^\s#]+)/gm)) {
       if (!/^[0-9a-f]{40}$/.test(match[1])) {
@@ -207,7 +214,7 @@ export function validateRepository(root = repositoryRoot) {
   }
 
   const citationPath = path.join(root, 'CITATION.cff');
-  if (existsSync(citationPath) && expectedVersion) {
+  if (isRegularFile(citationPath) && expectedVersion) {
     const citationVersion = readText(citationPath).match(/^version:\s*"(\d+\.\d+\.\d+)"\s*$/m)?.[1] ?? null;
     if (citationVersion !== expectedVersion) {
       fail(`CITATION.cff version ${citationVersion ?? '<missing>'} must match package.json version ${expectedVersion}`);
@@ -215,7 +222,7 @@ export function validateRepository(root = repositoryRoot) {
   }
 
   const readmePath = path.join(root, 'README.md');
-  if (existsSync(readmePath) && expectedVersion) {
+  if (isRegularFile(readmePath) && expectedVersion) {
     const badgeVersion = readText(readmePath)
       .match(/!\[Version\]\(https:\/\/img\.shields\.io\/badge\/version-(\d+\.\d+\.\d+)-/)?.[1] ?? null;
     if (badgeVersion !== expectedVersion) {
@@ -224,7 +231,7 @@ export function validateRepository(root = repositoryRoot) {
   }
 
   const changelogPath = path.join(root, 'CHANGELOG.md');
-  if (existsSync(changelogPath) && expectedVersion) {
+  if (isRegularFile(changelogPath) && expectedVersion) {
     const escapedVersion = expectedVersion.replaceAll('.', '\\.');
     const released = new RegExp(`^## \\[?${escapedVersion}\\]? - \\d{4}-\\d{2}-\\d{2}[ \\t]*$`, 'm');
     if (!released.test(readText(changelogPath))) {
@@ -235,8 +242,8 @@ export function validateRepository(root = repositoryRoot) {
   const rootLicensePath = path.join(root, 'LICENSE');
   const skillLicensePath = path.join(skillRoot, 'LICENSE');
   if (
-    existsSync(rootLicensePath)
-    && existsSync(skillLicensePath)
+    isRegularFile(rootLicensePath)
+    && isRegularFile(skillLicensePath)
     && readText(rootLicensePath) !== readText(skillLicensePath)
   ) {
     fail('Bundled skill LICENSE must match the repository LICENSE');
@@ -256,7 +263,7 @@ export function validateRepository(root = repositoryRoot) {
   }
 
   const evalPath = path.join(root, 'evals', 'manifest.json');
-  if (existsSync(evalPath)) {
+  if (isRegularFile(evalPath)) {
     try {
       const manifest = JSON.parse(readText(evalPath));
       if (manifest.schemaVersion !== 1) fail('eval manifest schemaVersion must be 1');

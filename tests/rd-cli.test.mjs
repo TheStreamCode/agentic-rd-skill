@@ -138,6 +138,23 @@ test('init rejects file-path conflicts before creating workflow state', (t) => {
   assert.equal(existsSync(path.join(workspace, 'work', 'run-state.json')), false);
 });
 
+test('init preflights every managed path before writing any scaffolding', (t) => {
+  const workspace = workspaceFor(t, 'late-conflict-');
+  assert.equal(runCli(['init', workspace]).status, 0);
+  const statePath = path.join(workspace, 'work', 'run-state.json');
+  const stateBefore = readFileSync(statePath, 'utf8');
+  rmSync(path.join(workspace, 'project-brief.md'));
+  rmSync(path.join(workspace, 'work', '00-run-log.md'));
+  mkdirSync(path.join(workspace, 'work', '00-run-log.md'), { recursive: true });
+
+  const result = runCli(['init', workspace]);
+
+  assert.equal(result.status, 4);
+  assert.match(result.stderr, /Expected a regular file/);
+  assert.equal(existsSync(path.join(workspace, 'project-brief.md')), false);
+  assert.equal(readFileSync(statePath, 'utf8'), stateBefore);
+});
+
 test('dry-run writes nothing', (t) => {
   const workspace = workspaceFor(t, 'dry-');
   const result = runCli(['init', workspace, '--dry-run']);
@@ -493,6 +510,24 @@ test('malformed revision history is reported as invalid instead of crashing stat
   const validation = runCli(['validate', workspace, '--json']);
   assert.equal(validation.status, 3);
   assert.match(validation.stdout, /Revision history contains invalid metadata/);
+});
+
+test('state validation rejects contradictory current-phase and stage-gate metadata', (t) => {
+  const workspace = initializeFilledBrief(t);
+  assert.equal(runCli(['advance', workspace, '--phase', 'evidence', '--status', 'in_progress']).status, 0);
+  const statePath = path.join(workspace, 'work', 'run-state.json');
+  const state = JSON.parse(readFileSync(statePath, 'utf8'));
+  state.currentPhase = 'setup';
+  state.stageGate.score = 99;
+  writeFileSync(statePath, `${JSON.stringify(state, null, 2)}\n`, 'utf8');
+
+  const status = runCli(['status', workspace, '--json']);
+
+  assert.equal(status.status, 0, status.stderr);
+  const failures = JSON.parse(status.stdout).validation.failures.join('\n');
+  assert.match(failures, /currentPhase must match the latest started phase/);
+  assert.match(failures, /Stage-gate score must be between 0 and 10/);
+  assert.match(failures, /Inactive stage gate cannot retain decision metadata/);
 });
 
 test('unsafe integers and stage-gate-only options are rejected as usage errors', (t) => {

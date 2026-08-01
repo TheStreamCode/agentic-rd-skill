@@ -383,14 +383,21 @@ function commandInit(tokens) {
     stateCreated = true;
   }
 
-  const results = [
-    ['project-brief.md', copyTemplateIfMissing(workspace, 'project-brief.md', 'project-brief.md', dryRun)],
-    ['work/', ensureManagedDirectory(workspace, 'work', dryRun)],
-    ['work/00-run-log.md', copyTemplateIfMissing(workspace, 'run-log.md', 'work/00-run-log.md', dryRun)],
-    ['work/01-evidence/', ensureManagedDirectory(workspace, 'work/01-evidence', dryRun)],
-    ['work/03-execution/', ensureManagedDirectory(workspace, 'work/03-execution', dryRun)],
-    ['work/04-results/', ensureManagedDirectory(workspace, 'work/04-results', dryRun)]
+  const plannedResults = [
+    ['project-brief.md', (preview) => copyTemplateIfMissing(workspace, 'project-brief.md', 'project-brief.md', preview)],
+    ['work/', (preview) => ensureManagedDirectory(workspace, 'work', preview)],
+    ['work/00-run-log.md', (preview) => copyTemplateIfMissing(workspace, 'run-log.md', 'work/00-run-log.md', preview)],
+    ['work/01-evidence/', (preview) => ensureManagedDirectory(workspace, 'work/01-evidence', preview)],
+    ['work/03-execution/', (preview) => ensureManagedDirectory(workspace, 'work/03-execution', preview)],
+    ['work/04-results/', (preview) => ensureManagedDirectory(workspace, 'work/04-results', preview)]
   ];
+
+  // Validate every destination before the first write. A conflict in a later path
+  // must not leave a newly created brief or partial directory tree behind.
+  if (!dryRun) {
+    for (const [, apply] of plannedResults) apply(true);
+  }
+  const results = plannedResults.map(([item, apply]) => [item, apply(dryRun)]);
 
   if (stateCreated && !dryRun) writeManagedJson(workspace, 'work/run-state.json', state);
   results.splice(2, 0, ['work/run-state.json', stateCreated]);
@@ -828,21 +835,45 @@ function validateState(workspace, state) {
   if (state.finalStale && state.phases.stageGate === 'approved') {
     failures.push('stale final output requires a recorded review before finalization');
   }
-  if (state.phases.stageGate === 'approved') {
-    const dimensions = state.stageGate.dimensions;
-    const invalidDimensions = !Array.isArray(dimensions)
-      || dimensions.length !== 5
-      || dimensions.some((item) => !Number.isInteger(item) || item < 1 || item > 2)
-      || dimensions.reduce((total, item) => total + item, 0) !== state.stageGate.score;
-    if (state.stageGate.score < 8 || state.stageGate.blockers !== 0 || invalidDimensions) {
-      failures.push('Approved gate has an invalid score or blockers');
-    }
-  }
   const expectedGateDecision = ['approved', 'needs_revision', 'blocked'].includes(state.phases.stageGate)
     ? state.phases.stageGate
     : null;
   if (state.stageGate.decision !== expectedGateDecision) {
     failures.push('Stage-gate decision metadata does not match its phase status');
+  }
+  const dimensions = state.stageGate.dimensions;
+  const score = state.stageGate.score;
+  const dimensionsInvalid = dimensions !== null && (
+    dimensions.length !== 5
+    || dimensions.some((item) => !Number.isInteger(item) || item < 0 || item > 2)
+  );
+  if (score !== null && (score < 0 || score > 10)) failures.push('Stage-gate score must be between 0 and 10');
+  if (dimensionsInvalid) failures.push('Stage-gate dimensions must contain five scores from 0 to 2');
+  if (
+    score !== null
+    && dimensions !== null
+    && !dimensionsInvalid
+    && dimensions.reduce((total, item) => total + item, 0) !== score
+  ) {
+    failures.push('Stage-gate dimensions must sum to its score');
+  }
+  if (state.stageGate.blockers < 0) failures.push('Stage-gate blockers must be a non-negative integer');
+  if (
+    expectedGateDecision === null
+    && (score !== null || dimensions !== null || state.stageGate.blockers !== 0)
+  ) {
+    failures.push('Inactive stage gate cannot retain decision metadata');
+  }
+  if (state.phases.stageGate === 'approved') {
+    const invalidApprovalDimensions = dimensionsInvalid
+      || dimensions === null
+      || dimensions.some((item) => item === 0);
+    if (score === null || score < 8 || state.stageGate.blockers !== 0 || invalidApprovalDimensions) {
+      failures.push('Approved gate has an invalid score or blockers');
+    }
+  }
+  if (state.phases.stageGate === 'blocked' && state.stageGate.blockers < 1) {
+    failures.push('Blocked stage gate must record at least one blocker');
   }
   if (state.revisionRounds > state.budgets.maxRevisionRounds) {
     failures.push('Revision round limit exceeded');
@@ -905,6 +936,10 @@ function validateState(workspace, state) {
   }
   if (PHASES.includes(state.currentPhase) && state.phases[state.currentPhase] === 'pending') {
     failures.push('currentPhase cannot point to a pending phase');
+  }
+  const expectedCurrentPhase = [...PHASES].reverse().find((phase) => state.phases[phase] !== 'pending');
+  if (expectedCurrentPhase && state.currentPhase !== expectedCurrentPhase) {
+    failures.push(`currentPhase must match the latest started phase (${expectedCurrentPhase})`);
   }
   return [...new Set(failures)];
 }

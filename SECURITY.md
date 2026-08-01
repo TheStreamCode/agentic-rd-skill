@@ -16,6 +16,8 @@ Use GitHub private vulnerability reporting or a security advisory for sensitive 
 - Web pages, repositories, documents, logs, issues, and tool output are untrusted data and may contain prompt injection.
 - The portable skill does not pre-approve tools. Host permission, sandbox, workspace trust, and organizational policy remain authoritative.
 - The CLI refuses symlinked managed paths, unknown flags, incompatible state, out-of-order phases, mutation from globally invalid state, and finalization before approval.
+- Initialization validates every managed destination before its first scaffold write, so a late path conflict does not leave partial workflow files behind.
+- Repository validation does not follow symlinked documentation directories, and disposable validation fixtures copy only project-owned roots rather than ignored local workflow or secret files.
 - Workflow 1.1 verifies minimum artifact headings and revision fingerprints. These are integrity and traceability controls, not proof that Markdown claims are true or independently reviewed.
 - Revision fingerprints show whether upstream artifact bytes changed after a request; they are not signatures, provenance attestations, or protection against a malicious workspace owner.
 - The state CLI assumes one writer. Concurrent commands in the same workspace are outside the supported threat model until locking or generation checks are designed and tested.
