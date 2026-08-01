@@ -5,7 +5,7 @@ license: MIT
 compatibility: Requires filesystem read/write access. The optional workflow CLI requires Node.js 20+. Web access and native subagents are optional; the workflow has offline and single-agent fallbacks.
 metadata:
   author: Michael Gasperini
-  version: "1.0.0"
+  version: "1.1.0"
 ---
 
 # Agentic R&D Workflow

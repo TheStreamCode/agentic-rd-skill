@@ -2,7 +2,7 @@
 
 [![CI](https://github.com/TheStreamCode/agentic-rd-skill/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/TheStreamCode/agentic-rd-skill/actions/workflows/ci.yml)
 [![Agent Skills](https://img.shields.io/badge/Agent%20Skills-open%20standard-0969da)](https://agentskills.io/specification)
-[![Version](https://img.shields.io/badge/version-1.0.0-2ea44f)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-1.1.0-2ea44f)](CHANGELOG.md)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
 Agentic R&D Skill is an open-source, portable multi-agent research and development workflow for Codex, Claude Code, GitHub Copilot, Gemini CLI, and OpenCode. It turns complex technical, product, business, feasibility, strategy, and investigation briefs into traceable evidence, executable plans, reviewed results, and gated final reports—without requiring a provider-specific LLM SDK.
@@ -153,7 +153,7 @@ work/
 
 The final output can be created only after a stage-gate score of at least 8/10, no zero-scored dimension, and no blocker. The CLI deliberately refuses v0.3 workspaces rather than guessing at a migration.
 
-New runs use workflow contract 1.1: setup stays in progress until the filled brief and run log pass their minimum artifact contracts. Material findings receive stable IDs and coverage tables. Existing workflow 1.0 state remains readable.
+New runs use workflow contract 1.1, released in skill version 1.1.0: setup stays in progress until the filled brief and run log pass their minimum artifact contracts. Material findings receive stable IDs and coverage tables. Existing workflow 1.0 state remains readable.
 
 Common commands:
 
@@ -204,7 +204,9 @@ Run `npm run benchmark` for the current package size and local timing snapshot. 
 
 ## Versioning
 
-Version 1.0 introduced the breaking artifact layout and state contract. Unreleased workflow contract 1.1 adds truthful setup state, minimum artifact headings, revision history, and pre-mutation validation while retaining read compatibility with v1.0 state. The CLI intentionally does not migrate v0.3 runs.
+The project follows semantic versioning. Version 1.0 introduced the breaking artifact layout and state contract. Version 1.1 released workflow contract 1.1, which adds truthful setup state, minimum artifact headings, revision history, and pre-mutation validation while retaining read compatibility with v1.0 state. The CLI intentionally does not migrate v0.3 runs.
+
+`package.json` is the single source of truth for the release version. `npm run validate` fails when the skill metadata, citation file, README badge, or dated changelog section disagrees with it, so a partial version bump cannot reach a tag.
 
 ## Frequently Asked Questions
 
@@ -234,7 +236,7 @@ The stage gate scores alignment, evidence quality, execution correctness, risk a
 
 ## Maintainer, Citation, and Support
 
-Agentic R&D Skill is maintained by [Michael Gasperini (Mikesoft)](https://mikesoft.it) through [TheStreamCode](https://github.com/TheStreamCode). Deterministic workflow/package checks were last rerun on July 31, 2026; the host activation matrix is a separate dated snapshot documented in the compatibility reference. Maintainers should follow [RELEASING.md](RELEASING.md) so release integrity and evidence dates are verified independently.
+Agentic R&D Skill is maintained by [Michael Gasperini (Mikesoft)](https://mikesoft.it) through [TheStreamCode](https://github.com/TheStreamCode). Deterministic workflow/package checks were last rerun on August 1, 2026; the host activation matrix is a separate dated snapshot documented in the compatibility reference. Maintainers should follow [RELEASING.md](RELEASING.md) so release integrity and evidence dates are verified independently.
 
 For academic or published use, cite the project using [`CITATION.cff`](CITATION.cff). Contributions are welcome through the [contribution guide](CONTRIBUTING.md), and security issues should follow the [security policy](SECURITY.md).
 

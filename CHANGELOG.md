@@ -2,12 +2,18 @@
 
 ## [Unreleased]
 
+## [1.1.0] - 2026-08-01
+
+Workflow contract 1.1 is now released. Existing workflow 1.0 state remains readable and there is no breaking change to the v1 artifact layout or CLI surface.
+
 ### Added
 
 - Added workflow contract 1.1 with minimum phase headings, stable finding-coverage tables, safe multi-artifact scaffolding, configurable human-review metadata, and explicit valid-incomplete versus valid-complete output.
 - Added durable revision IDs, upstream-artifact fingerprints, and explicit no-change dispositions for stage-gate reapproval.
 - Added deterministic coverage for zero-host smoke behavior and the newly reproduced setup, revision-bypass, and invalid-state mutation paths.
 - Added repository-wide `AGENTS.md` instructions and a maintainer release-integrity checklist.
+- Added a repository-validated release-version invariant: `package.json` is the single source of truth and `npm run validate` now fails when `SKILL.md` metadata, `CITATION.cff`, the README version badge, or a dated `CHANGELOG.md` release section disagrees with it.
+- Added a regression test that mutates a copied repository tree to prove the release-version invariant reports drift on every checked surface.
 
 ### Changed
 
@@ -22,6 +28,13 @@
 - Prevented stage-gate reapproval from silently bypassing a requested revision.
 - Prevented `advance` and `finalize` from mutating state that fails full workflow validation.
 - Clarified protected tag/version selection versus GitHub immutable-release guarantees.
+- Fixed the model-backed host smoke asserting a hardcoded `1.0.0` activation marker; it now reads the shipped `SKILL.md` metadata version, so a release bump can no longer make the activation check assert a version the package does not declare.
+- Fixed the repository validator's Markdown walk descending into the local `.venv` and treating the ignored local `project-brief.md` dogfood artifact as tracked source, which made link validation depend on the contributor's local environment. A directory whose name ends in `.md` is also no longer misread as a file.
+
+### Known Issues
+
+- Symlink-rejection tests are skipped with `EPERM` on Windows hosts that cannot create symlinks; the Linux and macOS CI jobs remain the authoritative coverage for those paths.
+- `npm run smoke:hosts` remains environment-dependent and exits 3 with `inconclusive` when no eligible host CLI is installed. The host activation matrix is still the dated 2026-07-18 snapshot and was not rerun for this release.
 
 ## [1.0.0] - 2026-07-31
 
