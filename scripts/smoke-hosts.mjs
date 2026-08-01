@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-import { cpSync, mkdirSync, mkdtempSync, rmSync } from 'node:fs';
+import { cpSync, mkdirSync, mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import process from 'node:process';
@@ -11,6 +11,21 @@ const scriptPath = fileURLToPath(import.meta.url);
 const repositoryRoot = path.resolve(path.dirname(scriptPath), '..');
 const skillSource = path.join(repositoryRoot, 'skills', 'agentic-rd-skill');
 const runModelSmokes = process.argv.includes('--model-smokes');
+
+// Read the shipped skill version instead of hardcoding it, so a release bump cannot
+// leave the activation smoke asserting a version the package no longer declares.
+function skillVersion() {
+  const frontmatter = readFileSync(path.join(skillSource, 'SKILL.md'), 'utf8')
+    .replaceAll('\r\n', '\n')
+    .match(/^---\n([\s\S]*?)\n---\n/);
+  const version = frontmatter?.[1].match(/^\s{2}version:\s*"(\d+\.\d+\.\d+)"\s*$/m)?.[1];
+  if (!version) {
+    console.error('Cannot read metadata.version from skills/agentic-rd-skill/SKILL.md');
+    process.exit(2);
+  }
+  return version;
+}
+
 const hostOptionIndex = process.argv.indexOf('--host');
 const selectedHost = hostOptionIndex === -1 ? null : process.argv[hostOptionIndex + 1];
 const validHosts = new Set(['codex', 'claude', 'copilot', 'opencode']);
@@ -99,9 +114,11 @@ try {
   }
 
   if (runModelSmokes) {
-    const expected = /DISCOVERED\s+agentic-rd-skill\s+1\.0\.0/i;
+    const version = skillVersion();
+    const expected = new RegExp(`DISCOVERED\\s+agentic-rd-skill\\s+${version.replaceAll('.', '\\.')}`, 'i');
     const genericPrompt =
-      'Activate the workspace skill named agentic-rd-skill. Do not create or edit files, run scripts, or research the web. Read only the activated skill metadata and return exactly: DISCOVERED agentic-rd-skill 1.0.0';
+      'Activate the workspace skill named agentic-rd-skill. Do not create or edit files, run scripts, or research the web. '
+      + `Read only the activated skill metadata and return exactly: DISCOVERED agentic-rd-skill ${version}`;
 
     if (includesHost('codex') && commandAvailable('codex')) {
       record(

@@ -80,11 +80,17 @@ function parseScalarFrontmatter(text) {
 
 function markdownFiles(root) {
   const files = [];
-  const ignoredDirectories = new Set(['.git', 'node_modules', 'work']);
+  // `.venv` is the documented local validator environment and `work/`/`project-brief.md`
+  // are ignored local dogfood artifacts; neither is tracked product source.
+  const ignoredDirectories = new Set(['.git', '.venv', 'coverage', 'node_modules', 'work']);
+  const ignoredFiles = new Set([path.join(root, 'project-brief.md')]);
   const visit = (directory) => {
     for (const [name, entry] of Object.entries(importDirectory(directory))) {
-      if (entry.directory && !ignoredDirectories.has(name)) visit(entry.path);
-      else if (entry.path.toLowerCase().endsWith('.md')) files.push(entry.path);
+      if (entry.directory) {
+        if (!ignoredDirectories.has(name)) visit(entry.path);
+      } else if (entry.path.toLowerCase().endsWith('.md') && !ignoredFiles.has(entry.path)) {
+        files.push(entry.path);
+      }
     }
   };
   visit(root);
@@ -101,10 +107,24 @@ function importDirectory(directory) {
   return entries;
 }
 
+function releaseVersion(root) {
+  const packagePath = path.join(root, 'package.json');
+  if (!existsSync(packagePath)) return null;
+  try {
+    const version = JSON.parse(readText(packagePath)).version;
+    return typeof version === 'string' && /^\d+\.\d+\.\d+$/.test(version) ? version : null;
+  } catch {
+    return null;
+  }
+}
+
 export function validateRepository(root = repositoryRoot) {
   const failures = [];
   const skillRoot = path.join(root, 'skills', 'agentic-rd-skill');
   const fail = (message) => failures.push(message);
+  // package.json is the single source of truth for the release version; every other
+  // surface listed in RELEASING.md is checked against it so a partial bump fails locally.
+  const expectedVersion = releaseVersion(root);
 
   for (const relativePath of REQUIRED_ROOT_FILES) {
     const fullPath = path.join(root, relativePath);
@@ -136,7 +156,12 @@ export function validateRepository(root = repositoryRoot) {
       if (!values.compatibility || values.compatibility.length > 500) fail('SKILL.md compatibility must be 1-500 characters');
       if (values.license !== 'MIT') fail('SKILL.md license must be MIT');
       if (/^allowed-tools\s*:/m.test(raw)) fail('Portable SKILL.md must not pre-approve host-specific tools');
-      if (!/^\s{2}version:\s*"1\.0\.0"\s*$/m.test(raw)) fail('SKILL.md metadata version must be 1.0.0');
+      const skillVersion = raw.match(/^\s{2}version:\s*"(\d+\.\d+\.\d+)"\s*$/m)?.[1] ?? null;
+      if (skillVersion === null) {
+        fail('SKILL.md metadata version must be a quoted x.y.z string');
+      } else if (expectedVersion && skillVersion !== expectedVersion) {
+        fail(`SKILL.md metadata version ${skillVersion} must match package.json version ${expectedVersion}`);
+      }
     }
     if (skillText.split('\n').length > 500) fail('SKILL.md must remain under 500 lines');
     for (const requiredReference of [
@@ -154,7 +179,7 @@ export function validateRepository(root = repositoryRoot) {
   const packagePath = path.join(root, 'package.json');
   if (existsSync(packagePath)) {
     const packageJson = JSON.parse(readText(packagePath));
-    if (packageJson.version !== '1.0.0') fail('package.json version must be 1.0.0');
+    if (expectedVersion === null) fail('package.json version must be a semantic x.y.z string');
     if (packageJson.engines?.node !== '>=20') fail('package.json must require Node.js >=20');
     if (packageJson.scripts?.test !== 'node --test') fail('package.json test script must run node --test');
     if (packageJson.scripts?.check !== 'npm run validate && npm test && npm run benchmark') {
@@ -182,8 +207,29 @@ export function validateRepository(root = repositoryRoot) {
   }
 
   const citationPath = path.join(root, 'CITATION.cff');
-  if (existsSync(citationPath) && !/^version:\s*"1\.0\.0"\s*$/m.test(readText(citationPath))) {
-    fail('CITATION.cff version must be 1.0.0');
+  if (existsSync(citationPath) && expectedVersion) {
+    const citationVersion = readText(citationPath).match(/^version:\s*"(\d+\.\d+\.\d+)"\s*$/m)?.[1] ?? null;
+    if (citationVersion !== expectedVersion) {
+      fail(`CITATION.cff version ${citationVersion ?? '<missing>'} must match package.json version ${expectedVersion}`);
+    }
+  }
+
+  const readmePath = path.join(root, 'README.md');
+  if (existsSync(readmePath) && expectedVersion) {
+    const badgeVersion = readText(readmePath)
+      .match(/!\[Version\]\(https:\/\/img\.shields\.io\/badge\/version-(\d+\.\d+\.\d+)-/)?.[1] ?? null;
+    if (badgeVersion !== expectedVersion) {
+      fail(`README version badge ${badgeVersion ?? '<missing>'} must match package.json version ${expectedVersion}`);
+    }
+  }
+
+  const changelogPath = path.join(root, 'CHANGELOG.md');
+  if (existsSync(changelogPath) && expectedVersion) {
+    const escapedVersion = expectedVersion.replaceAll('.', '\\.');
+    const released = new RegExp(`^## \\[?${escapedVersion}\\]? - \\d{4}-\\d{2}-\\d{2}[ \\t]*$`, 'm');
+    if (!released.test(readText(changelogPath))) {
+      fail(`CHANGELOG.md must contain a dated "## [${expectedVersion}] - YYYY-MM-DD" section`);
+    }
   }
 
   const rootLicensePath = path.join(root, 'LICENSE');

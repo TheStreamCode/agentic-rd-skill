@@ -28,6 +28,8 @@ When documentation and runtime behavior disagree, verify the CLI and tests, then
 - `validate` distinguishes valid-incomplete, valid-complete, and invalid state. Structural validation is not semantic assurance.
 - Stage-gate approval requires at least 8/10, no zero dimension, and zero blockers.
 - A requested revision must retain its ID and be resolved by an upstream artifact change or an explicit no-change disposition.
+- `package.json` is the single source of truth for the release version. `SKILL.md` metadata, `CITATION.cff`, the README version badge, and a dated `CHANGELOG.md` release section must match it; `npm run validate` fails on any partial bump.
+- Do not hardcode the release version anywhere else. Scripts that need it must read it from `package.json` or the shipped `SKILL.md` frontmatter.
 - The CLI is single-writer. Do not introduce concurrent state mutation without a designed locking/generation protocol and cross-platform tests.
 - Preserve atomic state replacement, managed-path containment, symlink rejection, non-overwrite behavior, and explicit exit classes.
 - Never convert skipped or zero-execution host checks into a pass.
@@ -51,6 +53,7 @@ Update all affected surfaces when behavior changes:
 - Required artifact heading or field: asset template, CLI contract table, benchmark fixture, tests, example run, and traceability guidance.
 - Host claim: README matrix, `references/compatibility.md`, and a dated eval with the exact host/version/check executed.
 - Package/release process: `RELEASING.md`, repository validator, changelog, and public wording.
+- Release version: `package.json` first, then `skills/agentic-rd-skill/SKILL.md` metadata, `CITATION.cff`, the README badge, and a dated `CHANGELOG.md` section. Confirm with `npm run validate` rather than by inspection.
 - Security boundary: `SECURITY.md`, `quality-and-safety.md`, tests, and threat notes in the change description.
 
 Do not copy current package bytes or benchmark point values into undated README prose. Keep point-in-time measurements in dated eval files and make `npm run benchmark` the current source.

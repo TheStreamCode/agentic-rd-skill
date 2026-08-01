@@ -5,7 +5,7 @@ Use this checklist for every stable release. A passing local suite does not auth
 ## Prepare
 
 1. Start from a clean `main` checkout synchronized with `origin/main`.
-2. Align the intended version in `package.json`, `CITATION.cff`, `skills/agentic-rd-skill/SKILL.md`, README badge, and `CHANGELOG.md`.
+2. Set the intended version in `package.json`, then align `skills/agentic-rd-skill/SKILL.md` metadata, `CITATION.cff`, the README version badge, and a dated `CHANGELOG.md` release section. `npm run validate` enforces this alignment and fails on a partial bump, so run it before continuing rather than checking each file by hand.
 3. Review public host/version evidence separately from deterministic CLI evidence. Date every activation snapshot and keep untested hosts labeled as documentation-only.
 4. Run:
 
