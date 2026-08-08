@@ -17,7 +17,7 @@ Use GitHub private vulnerability reporting or a security advisory for sensitive 
 - The portable skill does not pre-approve tools. Host permission, sandbox, workspace trust, and organizational policy remain authoritative.
 - The CLI uses exact whitelist membership for profiles and options and refuses symlinked managed paths, unknown flags, incompatible or out-of-order state, invalid candidate transitions, and finalization before approval.
 - Initialization validates every managed destination before its first scaffold write, so a late path conflict does not leave partial workflow files behind.
-- Repository validation does not follow symlinked documentation directories, checks action pins in every GitHub workflow, and uses disposable fixtures that copy only project-owned roots rather than ignored local workflow or secret files.
+- Repository validation does not follow symlinked documentation directories, checks action pins across plain, quoted, and flow-style `uses` keys in every GitHub workflow, and uses disposable fixtures that copy only project-owned roots rather than ignored local workflow or secret files.
 - Workflow 1.1 verifies minimum artifact headings and revision fingerprints. These are integrity and traceability controls, not proof that Markdown claims are true or independently reviewed.
 - Revision fingerprints show whether upstream artifact bytes changed after a request; they are not signatures, provenance attestations, or protection against a malicious workspace owner.
 - Paid-tool, credentialed-system, and external-write fields in machine state are validated as fail-closed denials and never grant authority.

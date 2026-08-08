@@ -50,11 +50,32 @@ test('repository package satisfies structural invariants', () => {
 test('every GitHub Actions workflow must pin actions to full commit SHAs', (t) => {
   const root = copyRepository();
   t.after(() => rmSync(root, { recursive: true, force: true }));
-  const workflowPath = path.join(root, '.github', 'workflows', 'unpinned.yml');
-  writeFileSync(workflowPath, 'steps:\n  - uses: actions/checkout@main\n');
+  const workflowDirectory = path.join(root, '.github', 'workflows');
+  const unpinnedCases = new Map([
+    ['block.yml', 'steps:\n  - uses: actions/checkout@main\n'],
+    ['quoted.yml', 'steps:\n  - \'uses\': "actions/checkout@main"\n'],
+    ['flow.yml', 'steps: [{ name: checkout, "uses": actions/checkout@main }]\n'],
+    ['indirect.yml', 'steps:\n  - uses: *checkout-action\n']
+  ]);
+  for (const [name, content] of unpinnedCases) {
+    const workflowPath = path.join(workflowDirectory, name);
+    writeFileSync(workflowPath, content);
+    assert.ok(
+      validateRepository(root).includes(`.github/workflows/${name} must pin actions to full commit SHAs`),
+      `expected unpinned action detection for ${name}`
+    );
+    rmSync(workflowPath);
+  }
 
-  assert.ok(
-    validateRepository(root).includes('.github/workflows/unpinned.yml must pin actions to full commit SHAs')
+  const sha = '3d3c42e5aac5ba805825da76410c181273ba90b1';
+  const safePath = path.join(workflowDirectory, 'safe-syntax.yml');
+  writeFileSync(
+    safePath,
+    `steps:\n  - 'uses': "actions/checkout@${sha}"\n  - { uses: actions/checkout@${sha} }\n  - uses: ./local-action\n  - uses: docker://alpine:3.22\n  - run: 'echo "{ uses: actions/checkout@main }"'\n  # uses: actions/checkout@main\n`
+  );
+  assert.equal(
+    validateRepository(root).some((failure) => failure.startsWith('.github/workflows/safe-syntax.yml ')),
+    false
   );
 });
 

@@ -118,6 +118,99 @@ function releaseVersion(root) {
   }
 }
 
+function yamlScalarAt(line, offset) {
+  let cursor = offset;
+  while (/\s/.test(line[cursor] ?? '')) cursor += 1;
+  const quote = line[cursor];
+  if (quote === "'" || quote === '"') {
+    let value = '';
+    cursor += 1;
+    while (cursor < line.length) {
+      const character = line[cursor];
+      if (quote === "'" && character === "'" && line[cursor + 1] === "'") {
+        value += "'";
+        cursor += 2;
+        continue;
+      }
+      if (quote === '"' && character === '\\' && cursor + 1 < line.length) {
+        value += line[cursor + 1];
+        cursor += 2;
+        continue;
+      }
+      if (character === quote) return value;
+      value += character;
+      cursor += 1;
+    }
+    return value;
+  }
+  return line.slice(cursor).match(/^[^\s,}\]#]+/)?.[0] ?? '';
+}
+
+function usesValueAt(line, offset) {
+  const entry = line.slice(offset).match(/^\s*(?:uses|'uses'|"uses")\s*:\s*/);
+  if (!entry) return null;
+  return yamlScalarAt(line, offset + entry[0].length);
+}
+
+function workflowUsesValues(workflow) {
+  const values = [];
+  for (const line of workflow.split('\n')) {
+    let blockOffset = 0;
+    while (/\s/.test(line[blockOffset] ?? '')) blockOffset += 1;
+    if (line[blockOffset] === '-' && /\s/.test(line[blockOffset + 1] ?? '')) {
+      blockOffset += 1;
+      while (/\s/.test(line[blockOffset] ?? '')) blockOffset += 1;
+    }
+    const blockValue = usesValueAt(line, blockOffset);
+    if (blockValue !== null) values.push(blockValue);
+
+    let inSingleQuote = false;
+    let inDoubleQuote = false;
+    let flowDepth = 0;
+    for (let index = 0; index < line.length; index += 1) {
+      const character = line[index];
+      if (inSingleQuote) {
+        if (character === "'" && line[index + 1] === "'") index += 1;
+        else if (character === "'") inSingleQuote = false;
+        continue;
+      }
+      if (inDoubleQuote) {
+        if (character === '\\') index += 1;
+        else if (character === '"') inDoubleQuote = false;
+        continue;
+      }
+      if (character === "'") {
+        inSingleQuote = true;
+        continue;
+      }
+      if (character === '"') {
+        inDoubleQuote = true;
+        continue;
+      }
+      if (character === '#' && (index === 0 || /\s/.test(line[index - 1]))) break;
+      if (character === '{' || character === '[') {
+        flowDepth += 1;
+        const value = usesValueAt(line, index + 1);
+        if (value !== null) values.push(value);
+        continue;
+      }
+      if (character === ',' && flowDepth > 0) {
+        const value = usesValueAt(line, index + 1);
+        if (value !== null) values.push(value);
+        continue;
+      }
+      if ((character === '}' || character === ']') && flowDepth > 0) flowDepth -= 1;
+    }
+  }
+  return values;
+}
+
+function usesValueIsPinned(value) {
+  if (value.startsWith('./') || value.startsWith('docker://')) return true;
+  const separator = value.lastIndexOf('@');
+  return separator > 0 && /^[0-9a-f]{40}$/.test(value.slice(separator + 1));
+}
+
 export function validateRepository(root = repositoryRoot) {
   const failures = [];
   const skillRoot = path.join(root, 'skills', 'agentic-rd-skill');
@@ -222,10 +315,8 @@ export function validateRepository(root = repositoryRoot) {
   for (const workflowPath of workflowPaths) {
     const fullPath = path.join(root, workflowPath);
     const workflow = readText(fullPath);
-    for (const match of workflow.matchAll(/^\s*-?\s*uses:\s*[^@\s]+@([^\s#]+)/gm)) {
-      if (!/^[0-9a-f]{40}$/.test(match[1])) {
-        fail(`${workflowPath} must pin actions to full commit SHAs`);
-      }
+    if (workflowUsesValues(workflow).some((usesValue) => !usesValueIsPinned(usesValue))) {
+      fail(`${workflowPath} must pin actions to full commit SHAs`);
     }
   }
 

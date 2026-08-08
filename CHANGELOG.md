@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+### Fixed
+
+- Detected unpinned GitHub Actions references expressed with plain, quoted, or flow-style YAML `uses` keys while ignoring examples inside quoted scalar values.
+- Clarified that the v1.1.0 security review is historical evidence and removed the release-version literal from the bug-report placeholder.
+
 ## [1.1.1] - 2026-08-08
 
 ### Fixed

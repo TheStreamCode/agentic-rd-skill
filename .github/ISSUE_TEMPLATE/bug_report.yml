@@ -29,7 +29,7 @@ body:
     attributes:
       label: Workflow and CLI version
       description: Record the workflowVersion from run-state.json and the installed skill version when known.
-      placeholder: workflow 1.1, skill 1.1.1
+      placeholder: workflow 1.1, skill x.y.z
     validations:
       required: false
   - type: dropdown
