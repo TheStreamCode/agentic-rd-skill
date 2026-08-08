@@ -10,7 +10,38 @@ import { fileURLToPath } from 'node:url';
 const scriptPath = fileURLToPath(import.meta.url);
 const repositoryRoot = path.resolve(path.dirname(scriptPath), '..');
 const skillSource = path.join(repositoryRoot, 'skills', 'agentic-rd-skill');
-const runModelSmokes = process.argv.includes('--model-smokes');
+const validHosts = new Set(['codex', 'claude', 'copilot', 'opencode']);
+
+function usageError(message) {
+  console.error(message);
+  process.exit(2);
+}
+
+function parseArguments(tokens) {
+  let runModelSmokes = false;
+  let selectedHost = null;
+  for (let index = 0; index < tokens.length; index += 1) {
+    const token = tokens[index];
+    if (token === '--model-smokes') {
+      if (runModelSmokes) usageError('Duplicate option: --model-smokes');
+      runModelSmokes = true;
+      continue;
+    }
+    if (token === '--host') {
+      if (selectedHost !== null) usageError('Duplicate option: --host');
+      const value = tokens[index + 1];
+      if (value === undefined || value.startsWith('--')) usageError('Option --host requires a value');
+      if (!validHosts.has(value)) usageError(`Unknown host: ${value}`);
+      selectedHost = value;
+      index += 1;
+      continue;
+    }
+    usageError(`Unknown option or argument: ${token}`);
+  }
+  return { runModelSmokes, selectedHost };
+}
+
+const { runModelSmokes, selectedHost } = parseArguments(process.argv.slice(2));
 
 // Read the shipped skill version instead of hardcoding it, so a release bump cannot
 // leave the activation smoke asserting a version the package no longer declares.
@@ -26,13 +57,6 @@ function skillVersion() {
   return version;
 }
 
-const hostOptionIndex = process.argv.indexOf('--host');
-const selectedHost = hostOptionIndex === -1 ? null : process.argv[hostOptionIndex + 1];
-const validHosts = new Set(['codex', 'claude', 'copilot', 'opencode']);
-if (selectedHost && !validHosts.has(selectedHost)) {
-  console.error(`Unknown host: ${selectedHost}`);
-  process.exit(2);
-}
 const workspace = mkdtempSync(path.join(tmpdir(), 'agentic-rd-host-smoke-'));
 const failures = [];
 const skipped = [];

@@ -217,6 +217,24 @@ test('unknown options and profile changes fail without creating accidental paths
   assert.match(changed.stderr, /refusing to change/);
 });
 
+test('prototype-inherited profile and option names are rejected', (t) => {
+  const profileWorkspace = workspaceFor(t, 'prototype-profile-');
+  for (const profile of ['__proto__', 'constructor', 'toString']) {
+    const result = runCli(['init', profileWorkspace, '--profile', profile]);
+    assert.equal(result.status, 2);
+    assert.match(result.stderr, /Unknown profile/);
+    assert.equal(existsSync(path.join(profileWorkspace, 'work', 'run-state.json')), false);
+  }
+
+  const optionWorkspace = workspaceFor(t, 'prototype-option-');
+  assert.equal(runCli(['init', optionWorkspace]).status, 0);
+  for (const option of ['--__proto__', '--constructor', '--toString']) {
+    const result = runCli(['status', optionWorkspace, option, 'ignored']);
+    assert.equal(result.status, 2);
+    assert.match(result.stderr, /Unknown option/);
+  }
+});
+
 test('legacy or foreign work directories are preserved and rejected', (t) => {
   const workspace = workspaceFor(t, 'legacy-');
   writeFilled(workspace, 'work/01-orchestration-plan.md');
@@ -233,11 +251,28 @@ test('out-of-order phases and incomplete template artifacts are rejected', (t) =
   assert.equal(outOfOrder.status, 3);
   assert.match(outOfOrder.stderr, /before Evidence is complete/);
 
-  writeFilled(workspace, 'work/01-evidence/01-evidence.md', '# Evidence\n\n{{unfinished}}\n');
+  writeFilled(
+    workspace,
+    'work/01-evidence/01-evidence.md',
+    readFileSync(path.join(assetsRoot, 'evidence.md'), 'utf8')
+  );
   assert.equal(runCli(['advance', workspace, '--phase', 'evidence', '--status', 'in_progress']).status, 0);
   const incomplete = runCli(['advance', workspace, '--phase', 'evidence', '--status', 'complete']);
   assert.equal(incomplete.status, 3);
   assert.match(incomplete.stderr, /Incomplete artifact/);
+});
+
+test('literal non-template brace syntax is valid artifact content', (t) => {
+  const workspace = initializeFilledBrief(t);
+  assert.equal(runCli(['advance', workspace, '--phase', 'evidence', '--status', 'in_progress']).status, 0);
+  writeFilled(
+    workspace,
+    'work/01-evidence/01-evidence.md',
+    `${filledArtifact('work/01-evidence/01-evidence.md')}\nLiteral syntax under review: \`{{customer}}\`.\n`
+  );
+
+  const completed = runCli(['advance', workspace, '--phase', 'evidence', '--status', 'complete']);
+  assert.equal(completed.status, 0, completed.stderr);
 });
 
 test('workflow 1.1 phase contracts reject non-placeholder Markdown with missing headings', (t) => {
@@ -413,6 +448,34 @@ test('an explicit no-change disposition resolves a pending gate revision', (t) =
   assert.match(state.revisions[0].resolutionReason, /No content change/);
 });
 
+test('revision mode rejects incoherent predecessor state before approval', (t) => {
+  const workspace = initializeFilledBrief(t);
+  completeThroughCrossReview(workspace);
+  const requested = runCli([
+    'advance', workspace, '--phase', 'stage-gate', '--status', 'needs_revision', '--score', '7',
+    '--dimensions', '2,2,1,1,1', '--blockers', '1', '--reason', 'Revise evidence'
+  ]);
+  assert.equal(requested.status, 0, requested.stderr);
+
+  const statePath = path.join(workspace, 'work', 'run-state.json');
+  const state = JSON.parse(readFileSync(statePath, 'utf8'));
+  state.phases.evidence = 'pending';
+  writeFileSync(statePath, `${JSON.stringify(state, null, 2)}\n`, 'utf8');
+  const before = readFileSync(statePath, 'utf8');
+
+  const validation = runCli(['validate', workspace, '--json']);
+  assert.equal(validation.status, 3);
+  assert.match(validation.stdout, /plan is active while predecessor evidence is incomplete/);
+
+  const approval = runCli([
+    'advance', workspace, '--phase', 'stage-gate', '--status', 'approved', '--score', '8',
+    '--dimensions', '2,2,1,1,2', '--blockers', '0', '--reason', 'Explicit no-change disposition'
+  ]);
+  assert.equal(approval.status, 3);
+  assert.match(approval.stderr, /Refusing to mutate an invalid workflow/);
+  assert.equal(readFileSync(statePath, 'utf8'), before);
+});
+
 test('mutating commands reject a globally inconsistent state before writing', (t) => {
   const workspace = initializeFilledBrief(t);
   assert.equal(runCli(['advance', workspace, '--phase', 'evidence', '--status', 'in_progress']).status, 0);
@@ -431,6 +494,29 @@ test('mutating commands reject a globally inconsistent state before writing', (t
   assert.match(result.stderr, /Refusing to mutate an invalid workflow/);
   assert.equal(readFileSync(statePath, 'utf8'), before);
   assert.equal(existsSync(path.join(workspace, 'work', '03-execution', '01-execution.md')), false);
+});
+
+test('authorization budget flags remain fail-closed', (t) => {
+  const workspace = initializeFilledBrief(t);
+  const statePath = path.join(workspace, 'work', 'run-state.json');
+  const state = JSON.parse(readFileSync(statePath, 'utf8'));
+  state.budgets.paidTools = true;
+  state.budgets.credentialedPrivateSystems = true;
+  state.budgets.externalWrites = true;
+  writeFileSync(statePath, `${JSON.stringify(state, null, 2)}\n`, 'utf8');
+  const before = readFileSync(statePath, 'utf8');
+
+  const validation = runCli(['validate', workspace, '--json']);
+  assert.equal(validation.status, 3);
+  for (const field of ['paidTools', 'credentialedPrivateSystems', 'externalWrites']) {
+    assert.match(validation.stdout, new RegExp(`${field} must remain false`));
+  }
+
+  const mutation = runCli(['advance', workspace, '--phase', 'evidence', '--status', 'in_progress']);
+  assert.equal(mutation.status, 3);
+  assert.match(mutation.stderr, /Refusing to mutate an invalid workflow/);
+  assert.equal(readFileSync(statePath, 'utf8'), before);
+  assert.equal(existsSync(path.join(workspace, 'work', '01-evidence', '01-evidence.md')), false);
 });
 
 test('reopening a completed run preserves but invalidates the final output', (t) => {

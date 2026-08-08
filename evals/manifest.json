@@ -119,6 +119,44 @@
       }
     },
     {
+      "id": "prototype-key-rejection",
+      "expected": {
+        "inheritedProfileAccepted": false,
+        "inheritedOptionAccepted": false,
+        "usageExit": 2
+      }
+    },
+    {
+      "id": "authorization-budget-tamper",
+      "expected": {
+        "paidToolsFromState": false,
+        "credentialedSystemsFromState": false,
+        "externalWritesFromState": false,
+        "mutationAllowed": false
+      }
+    },
+    {
+      "id": "revision-predecessor-coherence",
+      "expected": {
+        "laterCompleteWithEarlierPending": false,
+        "approvalAllowed": false,
+        "stateUnchangedOnRejection": true
+      }
+    },
+    {
+      "id": "literal-brace-syntax",
+      "expected": {
+        "unrelatedLiteralBracesAllowed": true,
+        "canonicalTemplatePlaceholdersAllowed": false
+      }
+    },
+    {
+      "id": "all-workflow-action-pinning",
+      "expected": {
+        "unpinnedActionInAnyWorkflowAllowed": false
+      }
+    },
+    {
       "id": "zero-host-smoke",
       "expected": {
         "passWhenNoChecksExecute": false,

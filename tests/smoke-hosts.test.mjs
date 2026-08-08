@@ -33,3 +33,21 @@ test('host smoke rejects unknown host selectors', () => {
   assert.equal(result.status, 2);
   assert.match(result.stderr, /Unknown host/);
 });
+
+test('host smoke rejects missing host values and unknown options as usage errors', () => {
+  const missing = spawnSync(process.execPath, [smokePath, '--host'], {
+    cwd: repositoryRoot,
+    encoding: 'utf8',
+    windowsHide: true
+  });
+  assert.equal(missing.status, 2);
+  assert.match(missing.stderr, /requires a value/);
+
+  const unknown = spawnSync(process.execPath, [smokePath, '--bogus'], {
+    cwd: repositoryRoot,
+    encoding: 'utf8',
+    windowsHide: true
+  });
+  assert.equal(unknown.status, 2);
+  assert.match(unknown.stderr, /Unknown option or argument/);
+});

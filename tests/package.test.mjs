@@ -47,6 +47,17 @@ test('repository package satisfies structural invariants', () => {
   assert.deepEqual(validateRepository(repositoryRoot), []);
 });
 
+test('every GitHub Actions workflow must pin actions to full commit SHAs', (t) => {
+  const root = copyRepository();
+  t.after(() => rmSync(root, { recursive: true, force: true }));
+  const workflowPath = path.join(root, '.github', 'workflows', 'unpinned.yml');
+  writeFileSync(workflowPath, 'steps:\n  - uses: actions/checkout@main\n');
+
+  assert.ok(
+    validateRepository(root).includes('.github/workflows/unpinned.yml must pin actions to full commit SHAs')
+  );
+});
+
 test('release version drift is reported on every synchronized surface', (t) => {
   const root = copyRepository();
   t.after(() => rmSync(root, { recursive: true, force: true }));

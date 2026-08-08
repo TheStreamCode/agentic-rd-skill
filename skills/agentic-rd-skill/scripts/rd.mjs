@@ -23,6 +23,12 @@ const PROFILE_LIMITS = Object.freeze({
   standard: { maxSpecialists: 4, maxConcurrent: 4, maxWaves: 2 },
   extended: { maxSpecialists: 6, maxConcurrent: 6, maxWaves: 3 }
 });
+const PROFILE_NAMES = new Set(Object.keys(PROFILE_LIMITS));
+const AUTHORIZATION_BUDGETS = Object.freeze({
+  paidTools: false,
+  credentialedPrivateSystems: false,
+  externalWrites: false
+});
 const PHASES = Object.freeze([
   'setup',
   'evidence',
@@ -58,9 +64,10 @@ const PHASE_START_ARTIFACTS = Object.freeze({
 const NORMAL_STATUSES = new Set(['pending', 'in_progress', 'complete', 'needs_revision', 'blocked']);
 const GATE_STATUSES = new Set(['pending', 'in_progress', 'approved', 'needs_revision', 'blocked']);
 const FINAL_STATUSES = new Set(['pending', 'in_progress', 'complete', 'blocked']);
-const PLACEHOLDER_PATTERN = /\{\{[^}]+\}\}/;
+const PLACEHOLDER_PATTERN = /\{\{[^}]+\}\}/g;
 const SUPPORTED_WORKFLOW_VERSIONS = new Set(['1.0', '1.1']);
 const HUMAN_REVIEW_MODES = new Set(['final-only', 'plan-and-final', 'every-phase']);
+const STALE_FINAL_REVIEW_FAILURE = 'stale final output requires a recorded review before finalization';
 const ARTIFACT_PHASES = Object.freeze({
   evidence: ['evidence.md', 'work/01-evidence'],
   execution: ['execution.md', 'work/03-execution'],
@@ -81,6 +88,7 @@ const REQUIRED_HEADINGS = Object.freeze({
 const scriptPath = fileURLToPath(import.meta.url);
 const skillRoot = path.resolve(path.dirname(scriptPath), '..');
 const assetsRoot = path.join(skillRoot, 'assets');
+const templatePlaceholderCache = new Map();
 
 class CliError extends Error {
   constructor(message, exitCode) {
@@ -118,10 +126,10 @@ function parseArguments(tokens, optionSchema) {
     }
 
     const optionName = token.slice(2);
-    const optionType = optionSchema[optionName];
-    if (!optionType) {
+    if (!Object.hasOwn(optionSchema, optionName)) {
       throw new CliError(`Unknown option: --${optionName}`, EXIT.USAGE);
     }
+    const optionType = optionSchema[optionName];
 
     if (optionType === 'boolean') {
       options[optionName] = true;
@@ -263,7 +271,7 @@ function readState(workspace) {
   if (state.schemaVersion !== 1 || !SUPPORTED_WORKFLOW_VERSIONS.has(state.workflowVersion)) {
     throw new CliError('Unsupported workflow state version; expected v1.0 or v1.1.', EXIT.STATE);
   }
-  if (!PROFILE_LIMITS[state.profile]) {
+  if (!PROFILE_NAMES.has(state.profile)) {
     throw new CliError(`Unknown profile in workflow state: ${state.profile}`, EXIT.STATE);
   }
   if (
@@ -291,6 +299,7 @@ function readState(workspace) {
     || typeof state.updatedAt !== 'string'
     || !HUMAN_REVIEW_MODES.has(state.humanReview)
     || (state.lastReason !== null && typeof state.lastReason !== 'string')
+    || Object.keys(AUTHORIZATION_BUDGETS).some((name) => typeof state.budgets[name] !== 'boolean')
   ) {
     throw new CliError('Workflow state contains invalid v1 field types.', EXIT.STATE);
   }
@@ -321,9 +330,7 @@ function newState(profile, humanReview) {
     budgets: {
       ...PROFILE_LIMITS[profile],
       maxRevisionRounds: 2,
-      paidTools: false,
-      credentialedPrivateSystems: false,
-      externalWrites: false
+      ...AUTHORIZATION_BUDGETS
     },
     metrics: { phaseTransitions: 0, executionAttempts: 0 },
     lastReason: null
@@ -352,7 +359,7 @@ function commandInit(tokens) {
   const dryRun = Boolean(parsed.options['dry-run']);
   const requestedProfile = parsed.options.profile;
   const requestedHumanReview = parsed.options['human-review'];
-  if (requestedProfile && !PROFILE_LIMITS[requestedProfile]) {
+  if (requestedProfile && !PROFILE_NAMES.has(requestedProfile)) {
     throw new CliError(`Unknown profile: ${requestedProfile}`, EXIT.USAGE);
   }
   if (requestedHumanReview && !HUMAN_REVIEW_MODES.has(requestedHumanReview)) {
@@ -435,7 +442,19 @@ function assertRequiredHeadings(content, relativePath, requiredHeadings = []) {
   }
 }
 
-function assertFilledFile(workspace, relativePath, requiredHeadings = []) {
+function templatePlaceholders(templateName) {
+  if (!templatePlaceholderCache.has(templateName)) {
+    const template = readFileSync(path.join(assetsRoot, templateName), 'utf8');
+    templatePlaceholderCache.set(templateName, [...new Set(template.match(PLACEHOLDER_PATTERN) ?? [])]);
+  }
+  return templatePlaceholderCache.get(templateName);
+}
+
+function containsTemplatePlaceholder(content, templateName) {
+  return templatePlaceholders(templateName).some((placeholder) => content.includes(placeholder));
+}
+
+function assertFilledFile(workspace, relativePath, requiredHeadings = [], templateName) {
   const filePath = resolveManagedPath(workspace, relativePath);
   assertNoSymlinkComponents(workspace, filePath);
   if (!existsSync(filePath) || !statSync(filePath).isFile()) {
@@ -445,13 +464,13 @@ function assertFilledFile(workspace, relativePath, requiredHeadings = []) {
   if (content.trim().length === 0) {
     throw new CliError(`Artifact is empty: ${relativePath}`, EXIT.STATE);
   }
-  if (PLACEHOLDER_PATTERN.test(content)) {
+  if (containsTemplatePlaceholder(content, templateName)) {
     throw new CliError(`Artifact still contains template placeholders: ${relativePath}`, EXIT.STATE);
   }
   assertRequiredHeadings(content, relativePath, requiredHeadings);
 }
 
-function assertFilledDirectory(workspace, relativePath, requiredHeadings = []) {
+function assertFilledDirectory(workspace, relativePath, requiredHeadings = [], templateName) {
   const files = listMarkdownFiles(workspace, relativePath);
   if (files.length === 0) {
     throw new CliError(`No Markdown artifacts found in ${relativePath}`, EXIT.STATE);
@@ -459,7 +478,7 @@ function assertFilledDirectory(workspace, relativePath, requiredHeadings = []) {
   for (const filePath of files) {
     const content = readFileSync(filePath, 'utf8');
     const relativeFile = path.relative(workspace, filePath).split(path.sep).join('/');
-    if (content.trim().length === 0 || PLACEHOLDER_PATTERN.test(content)) {
+    if (content.trim().length === 0 || containsTemplatePlaceholder(content, templateName)) {
       throw new CliError(`Incomplete artifact: ${relativeFile}`, EXIT.STATE);
     }
     assertRequiredHeadings(content, relativeFile, requiredHeadings);
@@ -471,8 +490,8 @@ function strictHeadings(state, artifactType) {
 }
 
 function assertSetupReady(workspace, state) {
-  assertFilledFile(workspace, 'project-brief.md', strictHeadings(state, 'projectBrief'));
-  assertFilledFile(workspace, 'work/00-run-log.md', strictHeadings(state, 'runLog'));
+  assertFilledFile(workspace, 'project-brief.md', strictHeadings(state, 'projectBrief'), 'project-brief.md');
+  assertFilledFile(workspace, 'work/00-run-log.md', strictHeadings(state, 'runLog'), 'run-log.md');
 }
 
 function assertPhaseArtifact(workspace, phase, state) {
@@ -482,25 +501,25 @@ function assertPhaseArtifact(workspace, phase, state) {
       return;
     case 'evidence':
       assertSetupReady(workspace, state);
-      assertFilledDirectory(workspace, 'work/01-evidence', strictHeadings(state, 'evidence'));
+      assertFilledDirectory(workspace, 'work/01-evidence', strictHeadings(state, 'evidence'), 'evidence.md');
       return;
     case 'plan':
-      assertFilledFile(workspace, 'work/02-plan.md', strictHeadings(state, 'plan'));
+      assertFilledFile(workspace, 'work/02-plan.md', strictHeadings(state, 'plan'), 'plan.md');
       return;
     case 'execution':
-      assertFilledDirectory(workspace, 'work/03-execution', strictHeadings(state, 'execution'));
+      assertFilledDirectory(workspace, 'work/03-execution', strictHeadings(state, 'execution'), 'execution.md');
       return;
     case 'results':
-      assertFilledDirectory(workspace, 'work/04-results', strictHeadings(state, 'results'));
+      assertFilledDirectory(workspace, 'work/04-results', strictHeadings(state, 'results'), 'results.md');
       return;
     case 'crossReview':
-      assertFilledFile(workspace, 'work/05-cross-review.md', strictHeadings(state, 'crossReview'));
+      assertFilledFile(workspace, 'work/05-cross-review.md', strictHeadings(state, 'crossReview'), 'cross-review.md');
       return;
     case 'stageGate':
-      assertFilledFile(workspace, 'work/06-stage-gate.md', strictHeadings(state, 'stageGate'));
+      assertFilledFile(workspace, 'work/06-stage-gate.md', strictHeadings(state, 'stageGate'), 'stage-gate.md');
       return;
     case 'final':
-      assertFilledFile(workspace, 'work/07-final-output.md', strictHeadings(state, 'final'));
+      assertFilledFile(workspace, 'work/07-final-output.md', strictHeadings(state, 'final'), 'final-output.md');
       return;
     default:
       return;
@@ -644,7 +663,7 @@ function commandAdvance(tokens) {
     workspace,
     state,
     'Refusing to mutate an invalid workflow',
-    staleFinalRecovery ? ['stale final output requires a recorded review before finalization'] : []
+    staleFinalRecovery ? [STALE_FINAL_REVIEW_FAILURE] : []
   );
 
   if (phase === 'evidence' && status === 'in_progress' && state.phases.setup !== 'complete') {
@@ -757,17 +776,27 @@ function commandAdvance(tokens) {
     assertPhaseArtifact(workspace, phase, state);
   }
 
+  state.phases[phase] = status;
+  state.currentPhase = phase;
+  state.updatedAt = new Date().toISOString();
+  state.metrics.phaseTransitions += 1;
+  state.lastReason = parsed.options.reason ?? null;
+  const allowedCandidateFailures = state.finalStale && state.phases.stageGate === 'approved'
+    ? [STALE_FINAL_REVIEW_FAILURE]
+    : [];
+  assertValidState(
+    workspace,
+    state,
+    'Refusing to persist an invalid workflow transition',
+    allowedCandidateFailures
+  );
+
   let createdArtifact = null;
   if (status === 'in_progress' && PHASE_START_ARTIFACTS[phase]) {
     const [templateName, relativePath] = PHASE_START_ARTIFACTS[phase];
     if (copyTemplateIfMissing(workspace, templateName, relativePath)) createdArtifact = relativePath;
   }
 
-  state.phases[phase] = status;
-  state.currentPhase = phase;
-  state.updatedAt = new Date().toISOString();
-  state.metrics.phaseTransitions += 1;
-  state.lastReason = parsed.options.reason ?? null;
   writeManagedJson(workspace, 'work/run-state.json', state);
   console.log(`${cliPhaseName(phase)} -> ${status}`);
   if (createdArtifact) console.log(`created ${createdArtifact}`);
@@ -819,8 +848,7 @@ function validateState(workspace, state) {
     const phase = PHASES[index];
     if (state.phases[phase] !== 'pending') {
       const predecessor = PHASES[index - 1];
-      const isRevisionState = state.phases.stageGate === 'needs_revision' && index < PHASES.indexOf('stageGate');
-      if (!isRevisionState && !phaseIsSatisfied(state, predecessor)) {
+      if (!phaseIsSatisfied(state, predecessor)) {
         failures.push(`${phase} is active while predecessor ${predecessor} is incomplete`);
       }
     }
@@ -833,7 +861,7 @@ function validateState(workspace, state) {
   if (state.finalStale && !existsSync(finalPath)) failures.push('finalStale is set but no final output exists');
   if (state.finalStale && state.phases.final !== 'pending') failures.push('Stale final output must remain pending');
   if (state.finalStale && state.phases.stageGate === 'approved') {
-    failures.push('stale final output requires a recorded review before finalization');
+    failures.push(STALE_FINAL_REVIEW_FAILURE);
   }
   const expectedGateDecision = ['approved', 'needs_revision', 'blocked'].includes(state.phases.stageGate)
     ? state.phases.stageGate
@@ -930,6 +958,9 @@ function validateState(workspace, state) {
   if (state.budgets.maxRevisionRounds !== 2) failures.push('maxRevisionRounds must remain 2');
   for (const [name, expected] of Object.entries(PROFILE_LIMITS[state.profile])) {
     if (state.budgets[name] !== expected) failures.push(`${name} must match the ${state.profile} profile`);
+  }
+  for (const [name, expected] of Object.entries(AUTHORIZATION_BUDGETS)) {
+    if (state.budgets[name] !== expected) failures.push(`${name} must remain ${expected}`);
   }
   for (const name of ['phaseTransitions', 'executionAttempts']) {
     if (state.metrics[name] < 0) failures.push(`${name} must be a non-negative integer`);
@@ -1058,13 +1089,17 @@ function commandFinalize(tokens) {
       EXIT.STATE
     );
   }
-  const created = copyTemplateIfMissing(workspace, 'final-output.md', 'work/07-final-output.md');
+  let created;
   if (state.phases.final === 'pending') {
     state.phases.final = 'in_progress';
     state.currentPhase = 'final';
     state.updatedAt = new Date().toISOString();
     state.metrics.phaseTransitions += 1;
+    assertValidState(workspace, state, 'Refusing to persist an invalid finalization transition');
+    created = copyTemplateIfMissing(workspace, 'final-output.md', 'work/07-final-output.md');
     writeManagedJson(workspace, 'work/run-state.json', state);
+  } else {
+    created = copyTemplateIfMissing(workspace, 'final-output.md', 'work/07-final-output.md');
   }
   console.log(`${created ? 'created' : 'kept'} work/07-final-output.md`);
 }

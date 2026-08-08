@@ -42,7 +42,7 @@ The CLI creates only the brief, state, run log, and owned directories during ini
 
 `run-state.json` is the machine-readable workflow state. New runs use workflow contract `1.1`; existing `1.0` runs remain readable. Markdown files remain the human-readable evidence trail. If they disagree, stop, reconcile the artifacts, and rerun validation rather than silently trusting either side.
 
-Workflow 1.1 requires the phase-specific headings supplied by the bundled templates. Material evidence findings use stable IDs such as `E-01`; the plan, results, and final coverage tables must resolve or explicitly defer each ID. These checks improve structural traceability but do not certify semantic truth.
+Workflow 1.1 requires the phase-specific headings supplied by the bundled templates. A file remains templated only while it contains a canonical placeholder from its matching bundled asset; unrelated literal brace syntax is valid technical content. Material evidence findings use stable IDs such as `E-01`; the plan, results, and final coverage tables must resolve or explicitly defer each ID. These checks improve structural traceability but do not certify semantic truth.
 
 ## Phase Sequence
 
@@ -107,7 +107,7 @@ node <skill-root>/scripts/rd.mjs validate <workspace>
 
 Normal phase statuses are `pending`, `in_progress`, `complete`, `needs_revision`, and `blocked`. Stage gate uses `approved` instead of `complete`; final uses `complete` after the filled final artifact validates. Starting a phase with `in_progress` creates its first template lazily without replacing existing content. `artifact` creates additional evidence/execution/result templates from a safe lowercase slug. The CLI accepts the readable `cross-review` and `stage-gate` phase names as aliases for its machine-state keys.
 
-Every mutating command validates the current global state before it writes. `validate` returns `valid_incomplete`, `valid_complete`, or `invalid` in JSON and uses equivalent explicit text; a successful validity check alone is not a completion claim. `status` reports both validity/completion and a concrete next prerequisite. Human-review mode is recorded in state for audit; actual checkpoint decisions remain in the run log.
+Every state-changing command validates the current global state and the candidate transition before it writes. Profile and option names use exact whitelist membership, and paid-tool, credentialed-system, and external-write budgets remain false; authorization must come from the user and brief rather than workspace state. `validate` returns `valid_incomplete`, `valid_complete`, or `invalid` in JSON and uses equivalent explicit text; a successful validity check alone is not a completion claim. `status` reports both validity/completion and a concrete next prerequisite. Human-review mode is recorded in state for audit; actual checkpoint decisions remain in the run log.
 
 Starting an earlier phase after a gate revision invalidates all later phase statuses and removes gate approval from state. Existing artifacts are preserved for review; they are never silently deleted or overwritten. If a final output already exists, state marks it stale. After the gate is approved again, explicitly reopen the final phase with `--status in_progress --reason <review reason>` before reusing or revising that output.
 

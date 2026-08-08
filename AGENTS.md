@@ -24,7 +24,7 @@ When documentation and runtime behavior disagree, verify the CLI and tests, then
 - Preserve phase order: setup, evidence, plan, execution, results, cross-review, stage gate, final.
 - New runs use workflow contract 1.1. Existing workflow 1.0 state remains readable; v0.3 workspaces are preserved and rejected rather than migrated.
 - Setup remains `in_progress` until the filled brief and run log pass their artifact contracts.
-- State-mutating commands validate the current global state before writing. The documented stale-final recovery is the only scoped repair exception.
+- State-mutating commands validate the current global state and the candidate next state before writing. The documented stale-final recovery is the only scoped repair exception.
 - `validate` distinguishes valid-incomplete, valid-complete, and invalid state. Structural validation is not semantic assurance.
 - Stage-gate approval requires at least 8/10, no zero dimension, and zero blockers.
 - A requested revision must retain its ID and be resolved by an upstream artifact change or an explicit no-change disposition.
@@ -34,6 +34,7 @@ When documentation and runtime behavior disagree, verify the CLI and tests, then
 - Preserve atomic state replacement, managed-path containment, symlink rejection, non-overwrite behavior, and explicit exit classes.
 - Preflight the complete initialization layout before the first scaffold write; a late path conflict must leave earlier missing files untouched.
 - Keep `currentPhase` equal to the latest non-pending phase and keep stage-gate score, dimensions, blockers, and decision metadata consistent with the gate status.
+- Treat profile/option names as exact whitelist members rather than inherited object keys, and keep paid-tool, credentialed-system, and external-write state budgets fail-closed.
 - Never convert skipped or zero-execution host checks into a pass.
 
 ## Implementation Style
@@ -43,7 +44,7 @@ When documentation and runtime behavior disagree, verify the CLI and tests, then
 - Validate arguments and current state before filesystem mutation.
 - Use workspace-relative managed paths; reject traversal, symlinks, type conflicts, and unsafe slugs.
 - Preserve the previous valid `run-state.json` if a write fails.
-- Repository validators and test fixtures must not follow symlinked directories or copy ignored local workflow/secrets into disposable repository clones.
+- Repository validators and test fixtures must not follow symlinked directories or copy ignored local workflow/secrets into disposable repository clones; validate action pins in every GitHub workflow.
 - Keep exit codes stable: `0` success, `2` usage, `3` workflow/inconclusive state, `4` filesystem or safety failure.
 - Add focused regression tests for every reproduced defect and verify rejected mutations leave state/artifacts unchanged.
 - Do not weaken tests, hide expected failures, or rewrite unrelated user changes to make a gate pass.

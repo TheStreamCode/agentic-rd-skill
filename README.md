@@ -2,7 +2,7 @@
 
 [![CI](https://github.com/TheStreamCode/agentic-rd-skill/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/TheStreamCode/agentic-rd-skill/actions/workflows/ci.yml)
 [![Agent Skills](https://img.shields.io/badge/Agent%20Skills-open%20standard-0969da)](https://agentskills.io/specification)
-[![Version](https://img.shields.io/badge/version-1.1.0-2ea44f)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-1.1.1-2ea44f)](CHANGELOG.md)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
 Agentic R&D Skill is an open-source, portable multi-agent research and development workflow for Codex, Claude Code, GitHub Copilot, Gemini CLI, and OpenCode. It turns complex technical, product, business, feasibility, strategy, and investigation briefs into traceable evidence, executable plans, reviewed results, and gated final reports—without requiring a provider-specific LLM SDK.
@@ -153,7 +153,7 @@ work/
 
 The final output can be created only after a stage-gate score of at least 8/10, no zero-scored dimension, and no blocker. The CLI deliberately refuses v0.3 workspaces rather than guessing at a migration.
 
-New runs use workflow contract 1.1, released in skill version 1.1.0: setup stays in progress until the filled brief and run log pass their minimum artifact contracts. Material findings receive stable IDs and coverage tables. Existing workflow 1.0 state remains readable.
+New runs use workflow contract 1.1, released in skill version 1.1.0: setup stays in progress until the filled brief and run log pass their minimum artifact contracts. Material findings receive stable IDs and coverage tables. Existing workflow 1.0 state remains readable. Incomplete-template checks recognize the canonical placeholders shipped by each matching asset without rejecting unrelated literal brace syntax in technical content.
 
 Common commands:
 
@@ -170,7 +170,7 @@ node <installed-skill-path>\scripts\rd.mjs finalize .
 
 ## Safety Model
 
-By default the workflow does not authorize paid tools, credentialed private systems, external writes, deployment, publication, messages, purchases, production changes, or secret handling. Evidence is treated as untrusted data and cannot override workflow or user instructions.
+By default the workflow does not authorize paid tools, credentialed private systems, external writes, deployment, publication, messages, purchases, production changes, or secret handling. Evidence and machine-readable state are treated as untrusted data and cannot override workflow or user instructions; the corresponding state budgets remain fail-closed.
 
 Legal, medical, financial, compliance, employment, insurance, credit, security, and safety-critical deliverables require qualified human review before action.
 
@@ -185,7 +185,7 @@ npm run smoke:hosts
 npm run smoke:hosts:model
 ```
 
-Host smoke exits non-zero and reports `inconclusive` when no eligible host check actually runs; skipped checks are never reported as a pass.
+Host smoke exits non-zero and reports `inconclusive` when no eligible host check actually runs; skipped checks are never reported as a pass. Invalid selectors, missing values, and unknown options are usage errors rather than inconclusive host evidence.
 
 Release preparation also uses the official Agent Skills reference validator and GitHub CLI discovery:
 

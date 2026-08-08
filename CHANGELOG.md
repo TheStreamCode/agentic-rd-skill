@@ -2,6 +2,15 @@
 
 ## [Unreleased]
 
+## [1.1.1] - 2026-08-08
+
+### Fixed
+
+- Rejected prototype-inherited option and profile names so unsupported profiles cannot bypass resource limits or unknown-option handling.
+- Validated fail-closed authorization budgets and every candidate workflow transition before state replacement, including coherent predecessor ordering during revision rounds.
+- Limited incomplete-template detection to canonical placeholders shipped by the matching asset, allowing unrelated literal brace syntax in technical artifacts.
+- Extended repository validation to every GitHub Actions workflow and made host-smoke argument errors return the usage exit class.
+
 ## [1.1.0] - 2026-08-01
 
 Workflow contract 1.1 is now released. Existing workflow 1.0 state remains readable and there is no breaking change to the v1 artifact layout or CLI surface.

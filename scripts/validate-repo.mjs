@@ -202,9 +202,25 @@ export function validateRepository(root = repositoryRoot) {
     }
   }
 
-  for (const workflowPath of ['.github/workflows/ci.yml']) {
+  const workflowPaths = [];
+  const workflowDirectory = path.join(root, '.github', 'workflows');
+  if (existsSync(workflowDirectory)) {
+    if (!lstatSync(workflowDirectory).isDirectory()) {
+      fail('.github/workflows must be a regular directory');
+    } else {
+      for (const entry of readdirSync(workflowDirectory, { withFileTypes: true })) {
+        if (!/\.ya?ml$/i.test(entry.name)) continue;
+        const workflowPath = path.posix.join('.github/workflows', entry.name);
+        if (!entry.isFile()) {
+          fail(`${workflowPath} must be a regular file`);
+          continue;
+        }
+        workflowPaths.push(workflowPath);
+      }
+    }
+  }
+  for (const workflowPath of workflowPaths) {
     const fullPath = path.join(root, workflowPath);
-    if (!isRegularFile(fullPath)) continue;
     const workflow = readText(fullPath);
     for (const match of workflow.matchAll(/^\s*-?\s*uses:\s*[^@\s]+@([^\s#]+)/gm)) {
       if (!/^[0-9a-f]{40}$/.test(match[1])) {

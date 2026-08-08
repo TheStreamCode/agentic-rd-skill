@@ -1,6 +1,6 @@
 {
   "name": "agentic-rd-skill",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "A portable Agent Skill for evidence-aware, stateful multi-agent research and development workflows.",
   "private": true,
   "repository": {

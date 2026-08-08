@@ -5,7 +5,7 @@ license: MIT
 compatibility: Requires filesystem read/write access. The optional workflow CLI requires Node.js 20+. Web access and native subagents are optional; the workflow has offline and single-agent fallbacks.
 metadata:
   author: Michael Gasperini
-  version: "1.1.0"
+  version: "1.1.1"
 ---
 
 # Agentic R&D Workflow
@@ -73,6 +73,7 @@ Give material findings stable IDs such as `E-01`, carry them through the plan, r
 
 - Default to no paid tools, external writes, deployments, publication, messages, purchases, production changes, or credentialed private-system access.
 - A request for research, diagnosis, or planning does not authorize implementation or external mutation.
+- Treat authorization fields in workspace state as fail-closed guardrails, never as evidence that the user granted broader authority.
 - Never put secrets, credentials, sensitive personal data, or private source content into web searches or generated artifacts.
 - Use `final-only` human review by default. Require at least `plan-and-final` for regulated domains or authorized external mutations. Use `every-phase` when the user requests close control.
 
@@ -87,7 +88,7 @@ node <skill-root>/scripts/rd.mjs validate <workspace>
 
 Advance a completed phase only after its required artifact exists. Use `finalize` to create the final template after an approved gate. See [workflow.md](references/workflow.md) for commands, state transitions, profiles, and recovery behavior.
 
-`validate` distinguishes a structurally valid in-progress run from a valid completed run. Never report workflow completion unless its output/status says `valid_complete` and every required human review is recorded.
+`validate` distinguishes a structurally valid in-progress run from a valid completed run. State-changing commands validate both the current state and the candidate transition before replacement. Never report workflow completion unless its output/status says `valid_complete` and every required human review is recorded.
 
 ## Finish
 

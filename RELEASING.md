@@ -15,7 +15,7 @@ Use this checklist for every stable release. A passing local suite does not auth
    gh skill publish --dry-run
    ```
 
-   `smoke:hosts` must execute at least one eligible host check. With zero checks, the underlying runner exits 3 and reports `inconclusive`; npm may expose that child exit as a generic non-zero status. This is not a pass. Run model-backed smokes only with explicit budget and credential authorization.
+   `smoke:hosts` must execute at least one eligible host check. With zero checks, the underlying runner exits 3 and reports `inconclusive`; malformed selectors and options exit 2 as usage errors. npm may expose either child exit as a generic non-zero status. Neither result is a pass. Run model-backed smokes only with explicit budget and credential authorization.
 
 5. Validate the installable package with the hash-pinned official reference validator from `requirements-validation.txt`.
 6. Install the intended tag into a disposable directory, run the installed `rd.mjs --help`, initialize a disposable workflow, compare the payload, and remove only the verified temporary root.
