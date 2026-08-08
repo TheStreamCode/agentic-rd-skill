@@ -25,6 +25,6 @@ This table is point-in-time evidence, not a claim that the same versions or beha
 
 ## Distribution
 
-The repository uses `skills/agentic-rd-skill/` so standard skill discovery and GitHub CLI publishing can identify the package. Install the skill directory, not the repository-level documentation and tests, unless the host's installer handles repository discovery.
+The repository uses `skills/agentic-rd-skill/` so standard skill discovery, `npx skills add TheStreamCode/agentic-rd-skill`, and GitHub CLI publishing can identify the package. Install the skill directory, not the repository-level documentation and tests, unless the host's installer handles repository discovery. A direct Skills CLI install works before the `skills.sh` catalog page is indexed; catalog visibility and install counts depend on anonymous CLI telemetry and cache refreshes.
 
 Do not claim a host is smoke-tested unless a real activation test was run on the named version. Format compatibility derived from vendor documentation is not the same as behavioral verification.

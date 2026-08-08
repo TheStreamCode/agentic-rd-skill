@@ -2,6 +2,7 @@
 
 [![CI](https://github.com/TheStreamCode/agentic-rd-skill/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/TheStreamCode/agentic-rd-skill/actions/workflows/ci.yml)
 [![Agent Skills](https://img.shields.io/badge/Agent%20Skills-open%20standard-0969da)](https://agentskills.io/specification)
+[![skills.sh](https://skills.sh/b/TheStreamCode/agentic-rd-skill)](https://skills.sh/TheStreamCode/agentic-rd-skill)
 [![Version](https://img.shields.io/badge/version-1.1.1-2ea44f)](CHANGELOG.md)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
@@ -95,6 +96,14 @@ The skill follows the open [Agent Skills specification](https://agentskills.io/s
 See [`references/compatibility.md`](skills/agentic-rd-skill/references/compatibility.md) for requirements and limitations. Filesystem access is required. Node.js 20 or newer is required only for the optional CLI; web access and subagents are optional.
 
 ## Install
+
+Install from the public GitHub repository with the cross-agent Skills CLI:
+
+```powershell
+npx skills add TheStreamCode/agentic-rd-skill
+```
+
+This direct repository install works even while the corresponding `skills.sh` catalog page is still being indexed. Catalog discovery and install counts are populated from anonymous Skills CLI telemetry; review the repository and packaged `SKILL.md` before enabling any third-party skill.
 
 With GitHub CLI 2.96 or newer, install directly from the repository. The `gh skill` command is currently a preview feature:
 

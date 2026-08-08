@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Added
+
+- Documented direct installation through the cross-agent Skills CLI and added the official telemetry-backed `skills.sh` install-count badge, which will resolve automatically after catalog indexing.
+
 ### Fixed
 
 - Detected unpinned GitHub Actions references expressed with plain, quoted, or flow-style YAML `uses` keys while ignoring examples inside quoted scalar values.
