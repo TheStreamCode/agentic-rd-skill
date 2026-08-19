@@ -249,6 +249,8 @@ The stage gate scores alignment, evidence quality, execution correctness, risk a
 
 Agentic R&D Skill is maintained by [Michael Gasperini (Mikesoft)](https://mikesoft.it) through [TheStreamCode](https://github.com/TheStreamCode). Deterministic workflow/package checks were last rerun on August 1, 2026; the host activation matrix is a separate dated snapshot documented in the compatibility reference. Maintainers should follow [RELEASING.md](RELEASING.md) so release integrity and evidence dates are verified independently.
 
-For academic or published use, cite the project using [`CITATION.cff`](CITATION.cff). Contributions are welcome through the [contribution guide](CONTRIBUTING.md), and security issues should follow the [security policy](SECURITY.md).
+For academic or published use, cite the project using [`CITATION.cff`](CITATION.cff). Contributions are welcome through the [contribution guide](CONTRIBUTING.md), and security issues should follow the [security policy](SECURITY.md). If this skill helps your work, support maintenance through [GitHub Sponsors](https://github.com/sponsors/TheStreamCode).
 
-MIT licensed. See [LICENSE](LICENSE). If this skill helps your work, support maintenance through [GitHub Sponsors](https://github.com/sponsors/TheStreamCode).
+## License
+
+This project is licensed under the [MIT License](LICENSE).
