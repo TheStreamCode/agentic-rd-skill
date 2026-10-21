@@ -3,11 +3,8 @@
   "version": "1.1.1",
   "description": "A portable Agent Skill for evidence-aware, stateful multi-agent research and development workflows.",
   "private": true,
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/TheStreamCode/agentic-rd-skill.git"
-  },
-  "homepage": "https://github.com/TheStreamCode/agentic-rd-skill#readme",
+  "repository": "github:TheStreamCode/agentic-rd-skill",
+  "homepage": "https://mikesoft.it",
   "bugs": {
     "url": "https://github.com/TheStreamCode/agentic-rd-skill/issues"
   },
@@ -24,23 +21,31 @@
     "node": ">=20"
   },
   "keywords": [
+    "agent-laboratory",
+    "agent-orchestration",
+    "agent-skills",
+    "agentic-workflows",
     "ai-agents",
     "ai-research",
-    "agent-skills",
-    "research-agent",
-    "research",
-    "product-strategy",
-    "multi-agent",
-    "agent-orchestration",
-    "coding-agents",
-    "codex",
     "claude-code",
-    "github-copilot",
+    "codex",
+    "coding-agents",
+    "developer-tools",
+    "feasibility-study",
     "gemini-cli",
+    "github-copilot",
+    "multi-agent",
+    "nodejs",
+    "open-source",
     "opencode",
-    "agent-laboratory"
+    "product-strategy",
+    "research-agent",
+    "research-automation"
   ],
-  "author": "Michael Gasperini (https://mikesoft.it)",
+  "author": {
+    "name": "Michael Gasperini",
+    "url": "https://mikesoft.it"
+  },
   "funding": "https://github.com/sponsors/TheStreamCode",
   "license": "MIT"
 }

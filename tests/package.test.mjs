@@ -28,6 +28,7 @@ const INCLUDED_ROOTS = new Set([
   'scripts',
   'SECURITY.md',
   'skills',
+  'SUPPORT.md',
   'tests'
 ]);
 

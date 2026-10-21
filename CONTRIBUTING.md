@@ -30,6 +30,23 @@ python -m venv .venv
 - Do not add migration behavior, force-overwrite options, provider SDKs, or external mutations without an explicit design decision.
 - Update tests, README, changelog, metadata, and evaluation cases when public behavior changes.
 
+## Commit And Pull Request Conventions
+
+- Follow Conventional Commits (`type(scope): summary`, English, imperative mood).
+- Open an issue describing the problem before writing code, unless the change is a typo or a
+  documentation fix.
+- Keep one problem per pull request; do not mix refactors with behavior changes.
+- Commit messages, pull requests, and documentation carry no AI-attribution or generated-by footers.
+- `main` is protected: changes land through pull requests that pass the required CI checks.
+
+## Maintainer-Only Areas
+
+- Release tags, GitHub releases, and catalog publication are performed only by the maintainer.
+- Release metadata, the version invariant, and the files under `.github/` are maintainer-maintained
+  surfaces.
+- Changes to `scripts/validate-repo.mjs`, `requirements-validation.txt`, or the CI workflows are
+  reviewed with release integrity in mind.
+
 ## Validation
 
 Run:

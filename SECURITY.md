@@ -10,6 +10,8 @@ Security fixes target the latest published v1 release and the current `main` bra
 
 Use GitHub private vulnerability reporting or a security advisory for sensitive reports. Include the affected file or workflow phase, expected behavior, observed risk, reproduction steps, and suggested mitigation when available.
 
+You can expect an initial acknowledgement within seven days and a status update within 30 days. If the report is valid, a fix is prepared privately and disclosed in the release notes once a patched version is available. Credit is given in the advisory unless you ask otherwise.
+
 ## Threat Boundaries
 
 - Skills and referenced scripts execute with the permissions granted by the host. Review the package before installation.

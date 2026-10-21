@@ -1,0 +1,44 @@
+name: Feature request
+description: Propose a focused improvement to the workflow, references, templates, or CLI
+title: "[Feature]: "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Describe the problem first, then the proposed change.
+        Large features usually need a discussion before an implementation.
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What is hard or impossible today, and for whom.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed change
+      description: Desired behavior, alternatives considered, and what it must not break.
+    validations:
+      required: true
+  - type: textarea
+    id: compatibility
+    attributes:
+      label: Compatibility notes
+      description: Workflow versions read or written, host impact, migration needs, and whether existing runs remain usable.
+    validations:
+      required: true
+  - type: textarea
+    id: safety
+    attributes:
+      label: Safety and validation notes
+      description: Which authorization boundaries, failure modes, deterministic checks, and documentation surfaces need to change?
+    validations:
+      required: false
+  - type: checkboxes
+    id: confirmations
+    attributes:
+      label: Confirmations
+      options:
+        - label: I searched existing issues and discussions for this proposal.
+          required: true
