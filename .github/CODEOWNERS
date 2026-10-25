@@ -1,2 +1,7 @@
-# The maintainer owns the complete repository, including this policy file.
-* @TheStreamCode
+# Ownership of first-party sources and documentation.
+# Dependency manifests, lockfiles and GitHub workflows are intentionally unowned so
+# Dependabot pull requests do not request a maintainer review on every update.
+/evals/ @TheStreamCode
+/scripts/ @TheStreamCode
+/skills/ @TheStreamCode
+/tests/ @TheStreamCode
