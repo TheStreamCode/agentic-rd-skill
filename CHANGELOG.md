@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [1.2.0] - 2026-10-31
+
 ### Added
 
 - Documented direct installation through the cross-agent Skills CLI and added the `skills.sh` catalog badge, which will resolve after catalog indexing.

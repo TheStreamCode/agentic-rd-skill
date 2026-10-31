@@ -5,7 +5,7 @@ A portable multi-agent research and development workflow for Codex, Claude Code,
 [![CI](https://github.com/TheStreamCode/agentic-rd-skill/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/TheStreamCode/agentic-rd-skill/actions/workflows/ci.yml)
 [![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![skills.sh](https://img.shields.io/badge/skills.sh-agentic--rd--skill-0969da)](https://skills.sh/TheStreamCode/agentic-rd-skill)
-[![Version](https://img.shields.io/badge/version-1.1.1-2ea44f)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-1.2.0-2ea44f)](CHANGELOG.md)
 
 ![Pixel-art overview of Agentic R&D Skill turning a project brief into specialist work, review, and final outputs](assets/agentic-rd-skill-hero.png)
 
