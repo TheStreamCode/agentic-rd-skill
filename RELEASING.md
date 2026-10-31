@@ -18,12 +18,11 @@ Use this checklist for every stable release. A passing local suite does not auth
    `smoke:hosts` must execute at least one eligible host check. With zero checks, the underlying runner exits 3 and reports `inconclusive`; malformed selectors and options exit 2 as usage errors. npm may expose either child exit as a generic non-zero status. Neither result is a pass. Run model-backed smokes only with explicit budget and credential authorization.
 
 5. Validate the installable package with the hash-pinned official reference validator from `requirements-validation.txt`.
-6. Install the intended tag into a disposable directory, run the installed `rd.mjs --help`, initialize a disposable workflow, compare the payload, and remove only the verified temporary root.
 
 ## Publish
 
 1. Confirm the repository's GitHub immutable-releases setting is enabled before creating the release. Tag-protection rules and immutable releases are complementary controls.
-2. Create the signed or annotated version tag from the reviewed commit and publish the release without mutable generated assets unless they are reproducible and attested.
+2. Create the signed or annotated version tag from the reviewed commit and push it. The tag-triggered Release workflow verifies the tag/version match, checks that the tagged commit is on `main`, runs `npm run check`, the official Agent Skills validator, and `gh skill publish --dry-run`, then creates the GitHub release. Do not publish a separate manual release while the workflow is enabled; if verification fails, fix the cause and retag.
 3. Verify the live tag, release, CI, and CodeQL all resolve to the reviewed commit.
 4. Verify GitHub reports the release as immutable:
 
@@ -35,6 +34,7 @@ Use this checklist for every stable release. A passing local suite does not auth
 
 ## Post-Release
 
-1. Repeat pinned and unpinned `gh skill install` smokes and record the resolved tag/commit.
-2. Confirm direct repository installation even if catalog search indexing is delayed.
-3. Update dated evaluation evidence only from checks actually rerun; never copy prior benchmark or host results forward as current.
+1. Install the published tag into a disposable directory, run the installed `rd.mjs --help`, initialize a disposable workflow, compare the payload, and remove only the verified temporary root.
+2. Repeat pinned and unpinned `gh skill install` smokes and record the resolved tag/commit.
+3. Confirm direct repository installation even if catalog search indexing is delayed.
+4. Update dated evaluation evidence only from checks actually rerun; never copy prior benchmark or host results forward as current.

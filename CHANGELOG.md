@@ -2,14 +2,34 @@
 
 ## [Unreleased]
 
+## [1.2.0] - 2026-10-31
+
 ### Added
 
-- Documented direct installation through the cross-agent Skills CLI and added the official telemetry-backed `skills.sh` install-count badge, which will resolve automatically after catalog indexing.
+- Documented direct installation through the cross-agent Skills CLI and added the `skills.sh` catalog badge, which will resolve after catalog indexing.
+- The tag-triggered Release workflow now verifies the tag/version match and `main` ancestry, runs the full deterministic check suite, the official Agent Skills validator, and `gh skill publish --dry-run`, then publishes the GitHub release without installing dependencies in the dependency-free repository.
+- Repository validation now requires the release, docs, Dependabot, markdownlint, and issue-template configuration files and rejects a replaced no-op `validate` script.
+- Revision records now store per-artifact baseline hashes and a `changedArtifacts` list so a resolved revision names the source artifacts that changed.
+
+### Changed
+
+- `init` refuses to scaffold while an existing run state fails validation; missing layout is no longer restored over an inconsistent workflow.
+- `finalize` documentation now describes template creation and the separate `advance --phase final --status complete` transition.
+- The compact example uses the template file names created by lazy phase starts, and the host matrix records the dated activation snapshot and the default smoke scope.
+- `benchmark` now asserts that its realistic workspace validates as `valid_complete`.
+- `lastReason` retains the most recently supplied transition reason instead of being cleared by a later reasonless transition.
+- Guidance now requires real checkpoint timestamps, treats cross-review revision status as a pre-gate snapshot, records removal of disposable scratch copies, and states that `valid_complete` does not verify human-review decisions or claim truth.
 
 ### Fixed
 
 - Detected unpinned GitHub Actions references expressed with plain, quoted, or flow-style YAML `uses` keys while ignoring examples inside quoted scalar values.
 - Clarified that the v1.1.0 security review is historical evidence and removed the release-version literal from the bug-report placeholder.
+- Excluded `work/00-run-log.md` from the revision fingerprint so a log-only edit cannot satisfy the upstream source-artifact proof.
+- Rejected empty `--profile` and `--human-review` values instead of writing state the CLI cannot read.
+- Rejected dangling symlink and junction components before the first write and preflighted the state destination during initialization.
+- Marked the final output stale only when the output file exists, so reopening an upstream phase after starting the final phase without a file remains valid.
+- Required a filled stage-gate artifact, `--blockers` of at least 1, and a non-blank reason for a blocked gate, rejected whitespace-only `--reason` values, printed the readable phase alias in `status`, and classified unreadable state paths as filesystem errors.
+- The `init` next-step message now names both required setup artifacts.
 
 ## [1.1.1] - 2026-08-08
 

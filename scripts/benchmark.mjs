@@ -42,6 +42,22 @@ function runCli(args) {
   return elapsedMs;
 }
 
+function assertCompleteWorkspace(workspace) {
+  const result = spawnSync(process.execPath, [cliPath, 'validate', workspace, '--json'], {
+    cwd: repositoryRoot,
+    encoding: 'utf8',
+    windowsHide: true,
+    maxBuffer: 2 * 1024 * 1024
+  });
+  if (result.status !== 0) {
+    throw new Error(`CLI validate failed: ${(result.stderr || result.stdout).trim()}`);
+  }
+  const payload = JSON.parse(result.stdout);
+  if (payload.status !== 'valid_complete') {
+    throw new Error(`Benchmark workspace is not complete: ${payload.status}`);
+  }
+}
+
 function writeFilled(workspace, relativePath, kilobytes = 1) {
   const destination = path.join(workspace, relativePath);
   mkdirSync(path.dirname(destination), { recursive: true });
@@ -146,6 +162,7 @@ try {
   const realisticWorkspace = path.join(temporaryRoot, 'realistic-standard');
   mkdirSync(realisticWorkspace);
   buildRealisticWorkspace(realisticWorkspace);
+  assertCompleteWorkspace(realisticWorkspace);
   runCli(['status', realisticWorkspace]);
   runCli(['validate', realisticWorkspace]);
 

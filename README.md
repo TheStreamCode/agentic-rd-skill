@@ -5,7 +5,7 @@ A portable multi-agent research and development workflow for Codex, Claude Code,
 [![CI](https://github.com/TheStreamCode/agentic-rd-skill/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/TheStreamCode/agentic-rd-skill/actions/workflows/ci.yml)
 [![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![skills.sh](https://img.shields.io/badge/skills.sh-agentic--rd--skill-0969da)](https://skills.sh/TheStreamCode/agentic-rd-skill)
-[![Version](https://img.shields.io/badge/version-1.1.1-2ea44f)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-1.2.0-2ea44f)](CHANGELOG.md)
 
 ![Pixel-art overview of Agentic R&D Skill turning a project brief into specialist work, review, and final outputs](assets/agentic-rd-skill-hero.png)
 
@@ -62,7 +62,7 @@ Use the host-specific path from [Requirements](#requirements) when the host does
    node <installed-skill-path>\scripts\rd.mjs init . --profile standard --human-review final-only
    ```
 
-The workflow then runs eight gated phases: setup, evidence, plan, execution, results, cross-review, stage gate, and final synthesis. The `finalize` command refuses to complete a run until the stage gate scores at least 8/10, no dimension is scored zero, and no blocker remains.
+The workflow then runs eight gated phases: setup, evidence, plan, execution, results, cross-review, stage gate, and final synthesis. The CLI refuses to create the final synthesis template until the stage gate scores at least 8/10, no dimension is scored zero, and no blocker remains. Completing the final phase is a separate `advance --phase final --status complete` transition.
 
 ## Features
 
@@ -70,8 +70,8 @@ The workflow then runs eight gated phases: setup, evidence, plan, execution, res
 - Separated artifacts for evidence, plan, execution, results, review, and synthesis, with explicit read dependencies between phases.
 - A dependency-free Node.js CLI for initialization, state inspection, safe artifact scaffolding, pre-mutation checks, revision proof, stage-gate enforcement, and completion validation.
 - Native subagents when the host supports them, and a deterministic single-agent fallback when it does not.
-- Three size profiles, from a narrow two-phase run to a six-specialist, three-wave program.
-- Explicit authorization boundaries: no paid tools, credentialed systems, external writes, or publications without a recorded decision.
+- Three size profiles, from a one-specialist, one-wave run to a six-specialist, three-wave program.
+- Explicit authorization boundaries: no paid tools, credentialed systems, external writes, or publications unless the user authorizes them in the brief or run log.
 - Auditable findings with stable IDs, coverage tables, revision fingerprints, and a single-writer run log.
 - Validation that distinguishes `valid_incomplete`, `valid_complete`, and `invalid` workflow state instead of treating structural checks as semantic assurance.
 
@@ -90,7 +90,7 @@ The workflow then runs eight gated phases: setup, evidence, plan, execution, res
 | Gemini CLI | `.agents/skills/agentic-rd-skill/` or `.gemini/skills/agentic-rd-skill/` | Documented format and path |
 | OpenCode | `.agents/skills/agentic-rd-skill/` or `.opencode/skills/agentic-rd-skill/` | Native `skill` tool |
 
-See [`references/compatibility.md`](skills/agentic-rd-skill/references/compatibility.md) for the tested host versions, invocation syntax, and documented limitations.
+See [`references/compatibility.md`](skills/agentic-rd-skill/references/compatibility.md) for the tested host versions, invocation syntax, and documented limitations. The activation evidence behind this table is the dated 2026-07-18 snapshot: Codex, Claude Code, GitHub Copilot CLI, and OpenCode were activation-tested, while Gemini CLI is documentation-only.
 
 ## Configuration
 
@@ -106,12 +106,14 @@ The CLI exposes the workflow state machine:
 
 | Command | Purpose |
 | --- | --- |
-| `rd.mjs init . --profile <profile> --human-review <mode>` | Initialize a run in the current workspace. |
-| `rd.mjs status .` | Print the current phase and artifact state. |
+| `rd.mjs init . --profile <profile> --human-review <mode> [--dry-run]` | Initialize a run in the current workspace. |
+| `rd.mjs status . [--json]` | Print the current phase and artifact state. |
 | `rd.mjs artifact . --phase <phase> --name <name>` | Scaffold a managed artifact safely. |
 | `rd.mjs advance . --phase <phase> --status <status>` | Apply a validated phase transition. |
 | `rd.mjs validate . --json` | Report `valid_incomplete`, `valid_complete`, or `invalid`. |
-| `rd.mjs finalize .` | Complete the run after the stage gate passes. |
+| `rd.mjs finalize .` | Create the final synthesis template after an approved gate. |
+
+A blocked stage-gate decision requires a filled `work/06-stage-gate.md`, `--blockers` of at least 1, and a non-blank `--reason`. A `needs_revision` decision requires `--reason` with non-whitespace text. `valid_complete` is a structural completion signal; it does not verify human-review decisions or the truth of artifact claims.
 
 A run keeps the brief and all machine-readable state next to the project documentation:
 
@@ -133,9 +135,9 @@ New runs use workflow contract 1.1, which adds truthful setup state, minimum art
 
 ## Privacy and security
 
-The workflow does not authorize paid tools, credentialed private systems, external writes, deployment, publication, messages, purchases, production changes, or secret handling. Those budgets stay fail-closed in machine state until a run explicitly records a decision.
+The workflow does not authorize paid tools, credentialed private systems, external writes, deployment, publication, messages, purchases, production changes, or secret handling. Those budgets remain false in machine state and cannot be enabled through workspace state; authorization must come from the user and be recorded in the brief or run log.
 
-Evidence and machine-readable state are treated as untrusted data that cannot override workflow or user instructions. The CLI assumes a single writer, rejects symlinked managed paths, preserves existing artifacts, and validates state before every mutation. Host permissions, sandboxing, and organizational policy always take precedence.
+Evidence and machine-readable state are treated as untrusted data that cannot override workflow or user instructions. The CLI assumes a single writer, rejects symlinked managed paths, preserves existing artifacts, and validates workflow state before every transition. Host permissions, sandboxing, and organizational policy always take precedence.
 
 Legal, medical, financial, compliance, employment, insurance, credit, security, and safety-critical deliverables require qualified human review before use. See [`SECURITY.md`](SECURITY.md) for private vulnerability reporting.
 
@@ -153,13 +155,17 @@ Open phases remain, which is expected until the run is finalized. Run `rd.mjs st
 
 The CLI intentionally does not migrate v0.3 runs. Start a new run in a clean workspace, and keep the old files outside the managed paths.
 
+### `init` refuses an existing run
+
+`init` scaffolds missing layout only while the existing run passes `validate`. Reconcile the reported state or artifact failure first; do not delete `run-state.json` to bypass the check.
+
 ### `smoke:hosts` exits with status 3
 
-The runner exits with status 3 and reports `inconclusive` when zero eligible host checks ran. Install a supported host CLI, or treat the result as not verified. An inconclusive smoke is never a pass; malformed selectors and options exit 2 as usage errors.
+The runner exits with status 3 and reports `inconclusive` when zero eligible host checks ran. The default command probes GitHub Copilot and OpenCode discovery; Codex and Claude Code are probed only by `smoke:hosts:model`. Install a supported host CLI, or treat the result as not verified. An inconclusive smoke is never a pass; malformed selectors and options exit 2 as usage errors.
 
 ### A revision request cannot be approved
 
-A `needs_revision` change keeps its identifier until an upstream artifact changes or an explicit no-change disposition is recorded with the revision fingerprint. Re-check the fingerprint after editing the artifact.
+A `needs_revision` change keeps its identifier until an owned source artifact changes or an explicit no-change disposition is recorded with `--reason`. The run log is not part of the revision fingerprint, so recording the review there does not satisfy the proof. Re-check the fingerprint after editing the source artifact; a resolved revision record lists the changed source artifacts.
 
 ## Development
 
@@ -180,7 +186,7 @@ npm run smoke:hosts
 npm run smoke:hosts:model
 ```
 
-Release preparation also uses the hash-pinned Agent Skills reference validator and GitHub CLI discovery, which need Python 3.11 or newer and GitHub CLI 2.96 or newer. See [`RELEASING.md`](RELEASING.md) for the full checklist, and [`evals/manifest.json`](evals/manifest.json) for the repeatable activation, safety, and gating scenarios. [`AGENTS.md`](AGENTS.md) documents the repository invariants and the documentation synchronization matrix for contributors and coding agents.
+Release preparation also uses the hash-pinned Agent Skills reference validator and GitHub CLI discovery, which need Python 3.11 or newer and GitHub CLI 2.96 or newer. On tag pushes, the Release workflow re-runs `npm run check`, the official validator, and the publish dry-run before creating the GitHub release. See [`RELEASING.md`](RELEASING.md) for the full checklist, and [`evals/manifest.json`](evals/manifest.json) for the repeatable activation, safety, and gating scenarios. [`AGENTS.md`](AGENTS.md) documents the repository invariants and the documentation synchronization matrix for contributors and coding agents.
 
 The repository contains the installable package under [`skills/agentic-rd-skill`](skills/agentic-rd-skill), repository validators and benchmarks under `scripts/`, deterministic tests under `tests/`, and dated evidence under `evals/`. Point-in-time measurements belong in dated evaluation files; `npm run benchmark` is the current source.
 

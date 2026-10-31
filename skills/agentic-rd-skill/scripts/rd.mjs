@@ -187,7 +187,16 @@ function assertNoSymlinkComponents(workspace, destination) {
   let current = workspace;
   for (const component of relation.split(path.sep).filter(Boolean)) {
     current = path.join(current, component);
-    if (existsSync(current) && lstatSync(current).isSymbolicLink()) {
+    let details;
+    try {
+      // lstat, not existsSync: a dangling symlink or junction also violates the
+      // managed-path contract and must be rejected before any write.
+      details = lstatSync(current);
+    } catch (error) {
+      if (error.code === 'ENOENT') continue;
+      throw new CliError(`Cannot inspect managed path: ${current}`, EXIT.FILESYSTEM);
+    }
+    if (details.isSymbolicLink()) {
       throw new CliError(`Refusing managed path through symlink: ${current}`, EXIT.FILESYSTEM);
     }
   }
@@ -242,11 +251,23 @@ function writeManagedJson(workspace, relativePath, value) {
   }
 }
 
+function removeCreatedArtifact(workspace, relativePath) {
+  if (!relativePath) return;
+  try {
+    unlinkSync(resolveManagedPath(workspace, relativePath));
+  } catch {
+    // Best effort: preserve the original state-write failure.
+  }
+}
+
 function readJsonFile(filePath, label) {
   try {
     return JSON.parse(readFileSync(filePath, 'utf8'));
   } catch (error) {
-    throw new CliError(`Cannot parse ${label}: ${error.message}`, EXIT.STATE);
+    if (error instanceof SyntaxError) {
+      throw new CliError(`Cannot parse ${label}: ${error.message}`, EXIT.STATE);
+    }
+    throw new CliError(`Cannot read ${label}: ${error.message}`, EXIT.FILESYSTEM);
   }
 }
 
@@ -359,19 +380,20 @@ function commandInit(tokens) {
   const dryRun = Boolean(parsed.options['dry-run']);
   const requestedProfile = parsed.options.profile;
   const requestedHumanReview = parsed.options['human-review'];
-  if (requestedProfile && !PROFILE_NAMES.has(requestedProfile)) {
+  if (requestedProfile !== undefined && !PROFILE_NAMES.has(requestedProfile)) {
     throw new CliError(`Unknown profile: ${requestedProfile}`, EXIT.USAGE);
   }
-  if (requestedHumanReview && !HUMAN_REVIEW_MODES.has(requestedHumanReview)) {
+  if (requestedHumanReview !== undefined && !HUMAN_REVIEW_MODES.has(requestedHumanReview)) {
     throw new CliError(`Unknown human-review mode: ${requestedHumanReview}`, EXIT.USAGE);
   }
 
   const existingStatePath = statePath(workspace);
   detectLegacyOrForeignWork(workspace);
 
+  const stateExisted = existsSync(existingStatePath);
   let state;
   let stateCreated = false;
-  if (existsSync(existingStatePath)) {
+  if (stateExisted) {
     state = readState(workspace);
     if (requestedProfile && requestedProfile !== state.profile) {
       throw new CliError(
@@ -403,6 +425,10 @@ function commandInit(tokens) {
   // must not leave a newly created brief or partial directory tree behind.
   if (!dryRun) {
     for (const [, apply] of plannedResults) apply(true);
+    assertNoSymlinkComponents(workspace, existingStatePath);
+  }
+  if (stateExisted) {
+    assertValidState(workspace, state, 'Refusing to initialize an invalid workflow');
   }
   const results = plannedResults.map(([item, apply]) => [item, apply(dryRun)]);
 
@@ -414,7 +440,7 @@ function commandInit(tokens) {
   }
   console.log(`profile ${state.profile}`);
   console.log(`human review ${state.humanReview}`);
-  console.log(dryRun ? 'dry-run complete; no files written' : 'next: complete project-brief.md, then start evidence');
+  console.log(dryRun ? 'dry-run complete; no files written' : 'next: complete project-brief.md and work/00-run-log.md, then start evidence');
 }
 
 function listMarkdownFiles(workspace, relativeDirectory) {
@@ -562,7 +588,7 @@ function assertPredecessor(state, phase) {
 function resetLaterPhases(state, phase, workspace) {
   const phaseIndex = PHASES.indexOf(phase);
   const finalPath = resolveManagedPath(workspace, 'work/07-final-output.md');
-  if (phaseIndex < PHASES.indexOf('final') && (state.phases.final !== 'pending' || existsSync(finalPath))) {
+  if (phaseIndex < PHASES.indexOf('final') && existsSync(finalPath)) {
     state.finalStale = true;
   }
   for (const laterPhase of PHASES.slice(phaseIndex + 1)) {
@@ -572,7 +598,9 @@ function resetLaterPhases(state, phase, workspace) {
 }
 
 function revisionArtifactPaths(workspace) {
-  const paths = ['project-brief.md', 'work/00-run-log.md'];
+  // The orchestrator updates the run log while resolving a revision. Including it
+  // would let a log-only edit satisfy the upstream-artifact proof.
+  const paths = ['project-brief.md'];
   for (const directory of ['work/01-evidence', 'work/03-execution', 'work/04-results']) {
     for (const filePath of listMarkdownFiles(workspace, directory)) {
       paths.push(path.relative(workspace, filePath).split(path.sep).join('/'));
@@ -595,6 +623,23 @@ function fingerprintRevisionArtifacts(workspace) {
   return hash.digest('hex');
 }
 
+function revisionArtifactHashes(workspace) {
+  const hashes = {};
+  for (const relativePath of revisionArtifactPaths(workspace)) {
+    hashes[relativePath] = createHash('sha256')
+      .update(readFileSync(resolveManagedPath(workspace, relativePath)))
+      .digest('hex');
+  }
+  return hashes;
+}
+
+function changedRevisionArtifacts(baselineArtifacts, currentArtifacts) {
+  const paths = new Set([...Object.keys(baselineArtifacts), ...Object.keys(currentArtifacts)]);
+  return [...paths]
+    .filter((relativePath) => baselineArtifacts[relativePath] !== currentArtifacts[relativePath])
+    .sort();
+}
+
 function pendingRevision(state) {
   if (state.pendingRevisionId === null) return null;
   return state.revisions.find((revision) => isRecord(revision) && revision.id === state.pendingRevisionId) ?? null;
@@ -608,6 +653,10 @@ function parseIntegerOption(value, name, defaultValue = undefined) {
     throw new CliError(`--${name} must be a safe non-negative integer`, EXIT.USAGE);
   }
   return parsed;
+}
+
+function normalizedReason(value) {
+  return typeof value === 'string' && value.trim().length > 0 ? value.trim() : null;
 }
 
 function parseDimensions(value, required = false) {
@@ -655,8 +704,9 @@ function commandAdvance(tokens) {
   const score = parseIntegerOption(parsed.options.score, 'score');
   const dimensions = parseDimensions(parsed.options.dimensions, phase === 'stageGate' && status === 'approved');
   const blockers = parseIntegerOption(parsed.options.blockers, 'blockers', 0);
+  const reason = normalizedReason(parsed.options.reason);
   const staleFinalRecovery = phase === 'final' && status === 'in_progress' && state.finalStale;
-  if (staleFinalRecovery && !parsed.options.reason) {
+  if (staleFinalRecovery && !reason) {
     throw new CliError('Revising a stale final output requires --reason to record the review.', EXIT.STATE);
   }
   assertValidState(
@@ -715,8 +765,9 @@ function commandAdvance(tokens) {
       const revision = pendingRevision(state);
       if (revision) {
         const currentHash = fingerprintRevisionArtifacts(workspace);
+        const currentArtifacts = revisionArtifactHashes(workspace);
         const artifactsChanged = currentHash !== revision.baselineHash;
-        if (!artifactsChanged && !parsed.options.reason) {
+        if (!artifactsChanged && !reason) {
           throw new CliError(
             `Revision ${revision.id} has no upstream artifact change; provide --reason with an explicit no-change disposition.`,
             EXIT.STATE
@@ -724,14 +775,17 @@ function commandAdvance(tokens) {
         }
         revision.resolvedAt = new Date().toISOString();
         revision.resolution = artifactsChanged ? 'upstream_change' : 'no_change_disposition';
-        revision.resolutionReason = parsed.options.reason ?? null;
+        revision.resolutionReason = reason;
         revision.resolvedHash = currentHash;
+        revision.changedArtifacts = isRecord(revision.baselineArtifacts)
+          ? changedRevisionArtifacts(revision.baselineArtifacts, currentArtifacts)
+          : null;
         state.pendingRevisionId = null;
       }
       state.stageGate = { decision: 'approved', score, dimensions, blockers: 0 };
     } else if (status === 'needs_revision') {
       assertPhaseArtifact(workspace, phase, state);
-      if (!parsed.options.reason) {
+      if (!reason) {
         throw new CliError('Stage-gate needs_revision requires --reason to record the requested change.', EXIT.STATE);
       }
       if (pendingRevision(state)) {
@@ -744,8 +798,9 @@ function commandAdvance(tokens) {
       const revision = {
         id: `R${state.revisionRounds}`,
         requestedAt: new Date().toISOString(),
-        requestReason: parsed.options.reason,
+        requestReason: reason,
         baselineHash: fingerprintRevisionArtifacts(workspace),
+        baselineArtifacts: revisionArtifactHashes(workspace),
         resolvedAt: null,
         resolution: null,
         resolutionReason: null,
@@ -755,12 +810,19 @@ function commandAdvance(tokens) {
       state.pendingRevisionId = revision.id;
       state.stageGate = { decision: 'needs_revision', score: score ?? null, dimensions, blockers };
     } else if (status === 'blocked') {
-      state.stageGate = { decision: 'blocked', score: score ?? null, dimensions, blockers: Math.max(1, blockers) };
+      assertPhaseArtifact(workspace, phase, state);
+      if (blockers < 1) {
+        throw new CliError('Stage-gate blocked requires --blockers of at least 1.', EXIT.STATE);
+      }
+      if (!reason) {
+        throw new CliError('Stage-gate blocked requires --reason to record the blocker.', EXIT.STATE);
+      }
+      state.stageGate = { decision: 'blocked', score: score ?? null, dimensions, blockers };
     }
   }
 
   if (phase === 'final' && status === 'in_progress' && state.finalStale) {
-    if (!parsed.options.reason) {
+    if (!reason) {
       throw new CliError('Revising a stale final output requires --reason to record the review.', EXIT.STATE);
     }
     state.finalStale = false;
@@ -780,7 +842,9 @@ function commandAdvance(tokens) {
   state.currentPhase = phase;
   state.updatedAt = new Date().toISOString();
   state.metrics.phaseTransitions += 1;
-  state.lastReason = parsed.options.reason ?? null;
+  // Retain the most recently supplied reason; audit history otherwise lives in
+  // revisions and the run log.
+  if (reason) state.lastReason = reason;
   const allowedCandidateFailures = state.finalStale && state.phases.stageGate === 'approved'
     ? [STALE_FINAL_REVIEW_FAILURE]
     : [];
@@ -797,7 +861,13 @@ function commandAdvance(tokens) {
     if (copyTemplateIfMissing(workspace, templateName, relativePath)) createdArtifact = relativePath;
   }
 
-  writeManagedJson(workspace, 'work/run-state.json', state);
+  try {
+    writeManagedJson(workspace, 'work/run-state.json', state);
+  } catch (error) {
+    // A failed state write must not leave a template that belongs to the rejected transition.
+    removeCreatedArtifact(workspace, createdArtifact);
+    throw error;
+  }
   console.log(`${cliPhaseName(phase)} -> ${status}`);
   if (createdArtifact) console.log(`created ${createdArtifact}`);
   if (phase === 'stageGate') console.log(`revision rounds ${state.revisionRounds}/${state.budgets.maxRevisionRounds}`);
@@ -919,9 +989,27 @@ function validateState(workspace, state) {
       || (revision.resolution !== null && !['upstream_change', 'no_change_disposition'].includes(revision.resolution))
       || (revision.resolutionReason !== null && typeof revision.resolutionReason !== 'string')
       || (revision.resolvedHash !== null && !/^[0-9a-f]{64}$/.test(revision.resolvedHash))
+      || (revision.baselineArtifacts !== undefined && (
+        !isRecord(revision.baselineArtifacts)
+        || Object.values(revision.baselineArtifacts).some(
+          (value) => typeof value !== 'string' || !/^[0-9a-f]{64}$/.test(value)
+        )
+      ))
+      || (revision.changedArtifacts !== undefined && revision.changedArtifacts !== null && (
+        !Array.isArray(revision.changedArtifacts)
+        || revision.changedArtifacts.some((value) => typeof value !== 'string' || value.length === 0)
+      ))
     ) {
       failures.push('Revision history contains invalid metadata');
       continue;
+    }
+    if (Array.isArray(revision.changedArtifacts) && revision.resolvedAt !== null) {
+      if (revision.resolution === 'upstream_change' && revision.changedArtifacts.length === 0) {
+        failures.push(`Revision ${revision.id} upstream_change must list changed artifacts`);
+      }
+      if (revision.resolution === 'no_change_disposition' && revision.changedArtifacts.length > 0) {
+        failures.push(`Revision ${revision.id} no_change_disposition cannot list changed artifacts`);
+      }
     }
     if (revisionIds.has(revision.id)) failures.push(`Duplicate revision id: ${revision.id}`);
     revisionIds.add(revision.id);
@@ -1065,7 +1153,7 @@ function commandStatus(tokens) {
     return;
   }
   console.log(`profile: ${state.profile}`);
-  console.log(`current phase: ${state.currentPhase}`);
+  console.log(`current phase: ${cliPhaseName(state.currentPhase)}`);
   for (const phase of PHASES) console.log(`${cliPhaseName(phase)}: ${state.phases[phase]}`);
   console.log(`revision rounds: ${state.revisionRounds}/${state.budgets.maxRevisionRounds}`);
   console.log(`final output stale: ${state.finalStale ? 'yes' : 'no'}`);
@@ -1097,7 +1185,13 @@ function commandFinalize(tokens) {
     state.metrics.phaseTransitions += 1;
     assertValidState(workspace, state, 'Refusing to persist an invalid finalization transition');
     created = copyTemplateIfMissing(workspace, 'final-output.md', 'work/07-final-output.md');
-    writeManagedJson(workspace, 'work/run-state.json', state);
+    try {
+      writeManagedJson(workspace, 'work/run-state.json', state);
+    } catch (error) {
+      // Do not leave the final template from a transition that was never persisted.
+      removeCreatedArtifact(workspace, created ? 'work/07-final-output.md' : null);
+      throw error;
+    }
   } else {
     created = copyTemplateIfMissing(workspace, 'final-output.md', 'work/07-final-output.md');
   }
