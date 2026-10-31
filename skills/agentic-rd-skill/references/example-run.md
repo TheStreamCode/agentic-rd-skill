@@ -24,10 +24,10 @@ This walkthrough uses the synthetic paths `<skill-root>` and `<workspace>`. Repl
 
 ## Produce And Review The Work
 
-1. Write `work/01-evidence/01-orchestrator.md` comparing server-authoritative last-write-wins and CRDT approaches. Assign stable IDs such as `E-01` to the observed API constraint and `E-02` to the inferred concurrency risk. Keep sources, observations, assumptions, and unknowns distinct.
+1. Write `work/01-evidence/01-evidence.md` comparing server-authoritative last-write-wins and CRDT approaches. Assign stable IDs such as `E-01` to the observed API constraint and `E-02` to the inferred concurrency risk. Keep sources, observations, assumptions, and unknowns distinct.
 2. Complete evidence, start plan, and fill `work/02-plan.md`. Its finding-coverage table must map both IDs to work or an explicit deferral.
-3. Complete the plan and run bounded execution. Record architecture inspection and actual checks in `work/03-execution/01-orchestrator.md`; then interpret them in `work/04-results/01-orchestrator.md` without relabeling estimates as observations.
-4. Use `artifact` when a phase needs another independently owned evidence, execution, or results file:
+3. Complete the plan and run bounded execution. Record architecture inspection and actual checks in `work/03-execution/01-execution.md`; then interpret them in `work/04-results/01-results.md` without relabeling estimates as observations.
+4. Use `artifact` when a phase needs another independently owned evidence, execution, or results file. The target phase must already be `in_progress`:
 
    ```text
    node <skill-root>/scripts/rd.mjs artifact <workspace> --phase results --name effort-review
@@ -40,7 +40,7 @@ This walkthrough uses the synthetic paths `<skill-root>` and `<workspace>`. Repl
    node <skill-root>/scripts/rd.mjs advance <workspace> --phase stage-gate --status needs_revision --score 7 --dimensions 2,1,1,1,2 --blockers 0 --reason "Label the E-02 effort estimate as an inference"
    ```
 
-7. Record the revision assignment in the run log, reopen the earliest affected upstream phase, revise the owned artifact, rerun the dependent review, and return to the gate. The workflow retains the revision ID and upstream fingerprints:
+7. Record the revision assignment in the run log, reopen the earliest affected upstream phase, revise the owned artifact, rerun the dependent review, and return to the gate. The workflow retains the revision ID and source-artifact fingerprints; the run log is not fingerprint input:
 
    ```text
    node <skill-root>/scripts/rd.mjs advance <workspace> --phase results --status in_progress
@@ -51,7 +51,7 @@ This walkthrough uses the synthetic paths `<skill-root>` and `<workspace>`. Repl
    node <skill-root>/scripts/rd.mjs advance <workspace> --phase stage-gate --status approved --score 8 --dimensions 2,2,1,1,2 --blockers 0
    ```
 
-   Approval is accepted only when the required upstream bytes changed or the revision has an explicit justified no-change disposition.
+   Approval is accepted only when the required source-artifact bytes changed or the revision has an explicit justified no-change disposition.
 
 ## Finalize And Verify
 

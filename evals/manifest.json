@@ -107,7 +107,35 @@
       "expected": {
         "revisionReasonRequired": true,
         "directUnchangedReapproval": false,
-        "explicitNoChangeDispositionAllowed": true
+        "explicitNoChangeDispositionAllowed": true,
+        "changedArtifactsListed": true
+      }
+    },
+    {
+      "id": "revision-run-log-only",
+      "profile": "standard",
+      "expected": {
+        "runLogOnlyChangeResolvesRevision": false,
+        "explicitNoChangeDispositionAllowed": true,
+        "changedArtifactsEmpty": true,
+        "stateUnchangedOnRejection": true
+      }
+    },
+    {
+      "id": "stage-gate-block-requirements",
+      "profile": "standard",
+      "expected": {
+        "blockedWithoutArtifactAllowed": false,
+        "blockedWithoutBlockersAllowed": false,
+        "workflowExit": 3
+      }
+    },
+    {
+      "id": "init-empty-option",
+      "expected": {
+        "emptyProfileAccepted": false,
+        "emptyHumanReviewAccepted": false,
+        "stateWrittenOnRejection": false
       }
     },
     {

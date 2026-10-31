@@ -10,6 +10,8 @@
 | --- | --- | --- |
 | {{checkpoint}} | {{status}} | {{evidence or decision}} |
 
+<!-- Record the actual system time for each checkpoint; do not estimate it after the fact. -->
+
 ## Team And Ownership
 
 | Agent/Pass | Capability | Owned Artifact | Dependencies |

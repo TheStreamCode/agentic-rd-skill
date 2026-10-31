@@ -49,8 +49,13 @@ const REQUIRED_ROOT_FILES = [
   '.github/ISSUE_TEMPLATE/config.yml',
   '.github/ISSUE_TEMPLATE/bug_report.yml',
   '.github/ISSUE_TEMPLATE/documentation.yml',
+  '.github/ISSUE_TEMPLATE/feature_request.yml',
   '.github/ISSUE_TEMPLATE/skill_improvement.yml',
+  '.github/dependabot.yml',
   '.github/workflows/ci.yml',
+  '.github/workflows/docs.yml',
+  '.github/workflows/release.yml',
+  '.markdownlint-cli2.jsonc',
   'evals/manifest.json',
   'evals/dogfood-v1.0.0.md',
   'evals/security-review-v1.1.0.md',
@@ -58,6 +63,7 @@ const REQUIRED_ROOT_FILES = [
   'requirements-validation.txt',
   'scripts/benchmark.mjs',
   'scripts/smoke-hosts.mjs',
+  'scripts/validate-repo.mjs',
   'tests/package.test.mjs',
   'tests/rd-cli.test.mjs',
   'tests/smoke-hosts.test.mjs'
@@ -280,6 +286,9 @@ export function validateRepository(root = repositoryRoot) {
     if (packageJson) {
       if (expectedVersion === null) fail('package.json version must be a semantic x.y.z string');
       if (packageJson.engines?.node !== '>=20') fail('package.json must require Node.js >=20');
+      if (packageJson.scripts?.validate !== 'node scripts/validate-repo.mjs') {
+        fail('package.json validate script must run scripts/validate-repo.mjs');
+      }
       if (packageJson.scripts?.test !== 'node --test') fail('package.json test script must run node --test');
       if (packageJson.scripts?.check !== 'npm run validate && npm test && npm run benchmark') {
         fail('package.json check script must run validation, tests, and benchmark');

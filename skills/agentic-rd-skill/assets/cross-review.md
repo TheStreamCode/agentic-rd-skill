@@ -26,6 +26,8 @@
 | --- | --- | --- | --- | --- |
 | {{owner}} | {{path}} | {{change}} | {{reason}} | {{status}} |
 
+<!-- Revision status is a pre-gate snapshot. After the stage gate records the outcome, the stage-gate artifact and run log are authoritative. -->
+
 ## Stage-Gate Guidance
 
 - {{Readiness assessment without approving.}}

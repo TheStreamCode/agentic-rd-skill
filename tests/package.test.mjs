@@ -13,6 +13,7 @@ const INCLUDED_ROOTS = new Set([
   '.gitattributes',
   '.github',
   '.gitignore',
+  '.markdownlint-cli2.jsonc',
   'AGENTS.md',
   'assets',
   'CHANGELOG.md',
@@ -125,6 +126,41 @@ test('malformed package metadata is reported without crashing validation', (t) =
   writeFileSync(path.join(root, 'package.json'), '{ invalid json\n');
 
   assert.ok(validateRepository(root).some((failure) => failure.startsWith('Invalid package.json:')));
+});
+
+test('required automation files are enforced', (t) => {
+  const root = copyRepository();
+  t.after(() => rmSync(root, { recursive: true, force: true }));
+
+  for (const relativePath of ['.github/workflows/release.yml', 'scripts/validate-repo.mjs']) {
+    rmSync(path.join(root, relativePath));
+  }
+
+  const failures = validateRepository(root);
+  assert.ok(failures.includes('Missing repository file: .github/workflows/release.yml'));
+  assert.ok(failures.includes('Missing repository file: scripts/validate-repo.mjs'));
+});
+
+test('the validate script cannot be replaced with a no-op', (t) => {
+  const root = copyRepository();
+  t.after(() => rmSync(root, { recursive: true, force: true }));
+
+  const packagePath = path.join(root, 'package.json');
+  const packageJson = JSON.parse(readFileSync(packagePath, 'utf8'));
+  packageJson.scripts.validate = 'node -e "process.exit(0)"';
+  writeFileSync(packagePath, `${JSON.stringify(packageJson, null, 2)}\n`);
+
+  assert.ok(validateRepository(root).includes('package.json validate script must run scripts/validate-repo.mjs'));
+});
+
+test('broken local Markdown links are reported', (t) => {
+  const root = copyRepository();
+  t.after(() => rmSync(root, { recursive: true, force: true }));
+
+  const readmePath = path.join(root, 'README.md');
+  writeFileSync(readmePath, `${readFileSync(readmePath, 'utf8')}\n[broken](missing.md)\n`);
+
+  assert.ok(validateRepository(root).includes('Broken local link in README.md: missing.md'));
 });
 
 test('repository Markdown validation does not follow symlinked directories', (t) => {

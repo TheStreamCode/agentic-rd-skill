@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import {
+  chmodSync,
   existsSync,
   mkdtempSync,
   mkdirSync,
@@ -93,6 +94,7 @@ test('init is idempotent and reports existing directories accurately', (t) => {
   const first = runCli(['init', workspace, '--profile', 'compact', '--human-review', 'plan-and-final']);
   assert.equal(first.status, 0, first.stderr);
   assert.match(first.stdout, /create work\/01-evidence\//);
+  assert.match(first.stdout, /complete project-brief\.md and work\/00-run-log\.md/);
 
   writeFileSync(path.join(workspace, 'project-brief.md'), 'USER CONTENT', 'utf8');
   const second = runCli(['init', workspace]);
@@ -308,6 +310,9 @@ test('starting phases creates lazy templates and accepts readable phase aliases'
   const gate = runCli(['advance', workspace, '--phase', 'stage-gate', '--status', 'in_progress']);
   assert.equal(gate.status, 0, gate.stderr);
   assert.equal(existsSync(path.join(workspace, 'work', '06-stage-gate.md')), true);
+  const status = runCli(['status', workspace]);
+  assert.equal(status.status, 0, status.stderr);
+  assert.match(status.stdout, /current phase: stage-gate/);
 });
 
 test('artifact command safely scaffolds additional owned phase artifacts', (t) => {
@@ -346,6 +351,20 @@ test('approved gate controls finalization and completed run validates', (t) => {
   ]);
   assert.equal(zeroDimension.status, 3);
   assert.match(zeroDimension.stderr, /non-zero/);
+
+  const wrongSum = runCli([
+    'advance', workspace, '--phase', 'stageGate', '--status', 'approved', '--score', '8',
+    '--dimensions', '2,2,1,1,1', '--blockers', '0'
+  ]);
+  assert.equal(wrongSum.status, 3);
+  assert.match(wrongSum.stderr, /sum to --score/);
+
+  const withBlockers = runCli([
+    'advance', workspace, '--phase', 'stageGate', '--status', 'approved', '--score', '8',
+    '--dimensions', '2,2,1,1,2', '--blockers', '1'
+  ]);
+  assert.equal(withBlockers.status, 3);
+  assert.match(withBlockers.stderr, /requires --blockers 0/);
 
   const approved = runCli([
     'advance', workspace, '--phase', 'stageGate', '--status', 'approved', '--score', '8',
@@ -424,6 +443,10 @@ test('revision requests require evidence of change or an explicit no-change disp
   assert.equal(state.revisions.length, 2);
   assert.equal(state.pendingRevisionId, null);
   assert.equal(state.phases.stageGate, 'in_progress');
+  for (const revision of state.revisions) {
+    assert.deepEqual(revision.changedArtifacts, ['work/05-cross-review.md']);
+    assert.equal(typeof revision.baselineArtifacts, 'object');
+  }
 });
 
 test('an explicit no-change disposition resolves a pending gate revision', (t) => {
@@ -446,6 +469,7 @@ test('an explicit no-change disposition resolves a pending gate revision', (t) =
   assert.equal(state.pendingRevisionId, null);
   assert.equal(state.revisions[0].resolution, 'no_change_disposition');
   assert.match(state.revisions[0].resolutionReason, /No content change/);
+  assert.deepEqual(state.revisions[0].changedArtifacts, []);
 });
 
 test('revision mode rejects incoherent predecessor state before approval', (t) => {
@@ -659,6 +683,194 @@ test('reopening an approved stage gate clears stale decision metadata', (t) => {
   const state = JSON.parse(readFileSync(path.join(workspace, 'work', 'run-state.json'), 'utf8'));
   assert.deepEqual(state.stageGate, { decision: null, score: null, dimensions: null, blockers: 0 });
   assert.equal(runCli(['validate', workspace]).status, 0);
+});
+
+test('empty profile and human-review values are rejected before writing state', (t) => {
+  const profileWorkspace = workspaceFor(t, 'empty-profile-');
+  const profile = runCli(['init', profileWorkspace, '--profile', '']);
+  assert.equal(profile.status, 2);
+  assert.match(profile.stderr, /Unknown profile/);
+  assert.equal(existsSync(path.join(profileWorkspace, 'work', 'run-state.json')), false);
+  assert.equal(existsSync(path.join(profileWorkspace, 'project-brief.md')), false);
+
+  const reviewWorkspace = workspaceFor(t, 'empty-review-');
+  const review = runCli(['init', reviewWorkspace, '--human-review', '']);
+  assert.equal(review.status, 2);
+  assert.match(review.stderr, /Unknown human-review mode/);
+  assert.equal(existsSync(path.join(reviewWorkspace, 'work', 'run-state.json')), false);
+});
+
+test('init refuses an existing invalid workflow state before scaffolding', (t) => {
+  const workspace = workspaceFor(t, 'invalid-init-');
+  assert.equal(runCli(['init', workspace]).status, 0);
+  const statePath = path.join(workspace, 'work', 'run-state.json');
+  const state = JSON.parse(readFileSync(statePath, 'utf8'));
+  state.phases.evidence = 'bogus';
+  writeFileSync(statePath, `${JSON.stringify(state, null, 2)}\n`, 'utf8');
+  rmSync(path.join(workspace, 'work', '01-evidence'), { recursive: true, force: true });
+  const before = readFileSync(statePath, 'utf8');
+
+  const result = runCli(['init', workspace]);
+
+  assert.equal(result.status, 3);
+  assert.match(result.stderr, /Refusing to initialize an invalid workflow/);
+  assert.equal(readFileSync(statePath, 'utf8'), before);
+  assert.equal(existsSync(path.join(workspace, 'work', '01-evidence')), false);
+});
+
+test('a run-log-only edit does not satisfy the revision fingerprint', (t) => {
+  const workspace = initializeFilledBrief(t);
+  completeThroughCrossReview(workspace);
+  const requested = runCli([
+    'advance', workspace, '--phase', 'stage-gate', '--status', 'needs_revision',
+    '--score', '7', '--blockers', '1', '--reason', 'Change the results interpretation'
+  ]);
+  assert.equal(requested.status, 0, requested.stderr);
+  assert.equal(runCli(['advance', workspace, '--phase', 'stage-gate', '--status', 'in_progress']).status, 0);
+
+  writeFilled(workspace, 'work/00-run-log.md', `${filledArtifact('work/00-run-log.md')}\n\nRevision review recorded.\n`);
+  const bypass = runCli([
+    'advance', workspace, '--phase', 'stage-gate', '--status', 'approved', '--score', '8',
+    '--dimensions', '2,2,1,1,2', '--blockers', '0'
+  ]);
+  assert.equal(bypass.status, 3);
+  assert.match(bypass.stderr, /no upstream artifact change/);
+
+  const resolved = runCli([
+    'advance', workspace, '--phase', 'stage-gate', '--status', 'approved', '--score', '8',
+    '--dimensions', '2,2,1,1,2', '--blockers', '0', '--reason', 'No source change: explicit disposition'
+  ]);
+  assert.equal(resolved.status, 0, resolved.stderr);
+  const state = JSON.parse(readFileSync(path.join(workspace, 'work', 'run-state.json'), 'utf8'));
+  assert.equal(state.revisions[0].resolution, 'no_change_disposition');
+  assert.equal(state.pendingRevisionId, null);
+  assert.deepEqual(state.revisions[0].changedArtifacts, []);
+});
+
+test('blank reasons do not satisfy the revision gate', (t) => {
+  const workspace = initializeFilledBrief(t);
+  completeThroughCrossReview(workspace);
+  const blank = runCli([
+    'advance', workspace, '--phase', 'stage-gate', '--status', 'needs_revision',
+    '--score', '7', '--blockers', '1', '--reason', '   '
+  ]);
+  assert.equal(blank.status, 3);
+  assert.match(blank.stderr, /requires --reason/);
+
+  const requested = runCli([
+    'advance', workspace, '--phase', 'stage-gate', '--status', 'needs_revision',
+    '--score', '7', '--blockers', '1', '--reason', 'Resolve the gap'
+  ]);
+  assert.equal(requested.status, 0, requested.stderr);
+  assert.equal(runCli(['advance', workspace, '--phase', 'stage-gate', '--status', 'in_progress']).status, 0);
+  const state = JSON.parse(readFileSync(path.join(workspace, 'work', 'run-state.json'), 'utf8'));
+  assert.equal(state.lastReason, 'Resolve the gap');
+});
+
+test('reopening an upstream phase after final starts without an output keeps state valid', (t) => {
+  const workspace = initializeFilledBrief(t);
+  completeThroughCrossReview(workspace);
+  assert.equal(runCli([
+    'advance', workspace, '--phase', 'stage-gate', '--status', 'approved', '--score', '8',
+    '--dimensions', '2,2,1,1,2', '--blockers', '0'
+  ]).status, 0);
+  assert.equal(runCli(['advance', workspace, '--phase', 'final', '--status', 'in_progress']).status, 0);
+  assert.equal(existsSync(path.join(workspace, 'work', '07-final-output.md')), false);
+
+  const reopen = runCli(['advance', workspace, '--phase', 'results', '--status', 'in_progress']);
+
+  assert.equal(reopen.status, 0, reopen.stderr);
+  const state = JSON.parse(readFileSync(path.join(workspace, 'work', 'run-state.json'), 'utf8'));
+  assert.equal(state.finalStale, false);
+  assert.equal(state.phases.final, 'pending');
+  assert.equal(runCli(['validate', workspace]).status, 0);
+});
+
+test('stage-gate block requires the review artifact and a blocker count', (t) => {
+  const workspace = initializeFilledBrief(t);
+  completeThroughCrossReview(workspace);
+
+  const missingBlockers = runCli([
+    'advance', workspace, '--phase', 'stage-gate', '--status', 'blocked', '--reason', 'Waiting for input'
+  ]);
+  assert.equal(missingBlockers.status, 3);
+  assert.match(missingBlockers.stderr, /at least 1/);
+
+  const missingReason = runCli([
+    'advance', workspace, '--phase', 'stage-gate', '--status', 'blocked', '--blockers', '1'
+  ]);
+  assert.equal(missingReason.status, 3);
+  assert.match(missingReason.stderr, /requires --reason/);
+
+  rmSync(path.join(workspace, 'work', '06-stage-gate.md'));
+  const missingArtifact = runCli([
+    'advance', workspace, '--phase', 'stage-gate', '--status', 'blocked',
+    '--blockers', '1', '--reason', 'Waiting for input'
+  ]);
+  assert.equal(missingArtifact.status, 3);
+  assert.match(missingArtifact.stderr, /Missing required artifact/);
+
+  writeFilled(workspace, 'work/06-stage-gate.md');
+  const blocked = runCli([
+    'advance', workspace, '--phase', 'stage-gate', '--status', 'blocked',
+    '--blockers', '1', '--reason', 'Waiting for input'
+  ]);
+  assert.equal(blocked.status, 0, blocked.stderr);
+  const state = JSON.parse(readFileSync(path.join(workspace, 'work', 'run-state.json'), 'utf8'));
+  assert.equal(state.stageGate.decision, 'blocked');
+  assert.equal(state.stageGate.blockers, 1);
+  assert.equal(runCli(['validate', workspace]).status, 0);
+});
+
+test('dangling managed reparse points are rejected before writes', (t) => {
+  const workspace = workspaceFor(t, 'dangling-');
+  const outside = workspaceFor(t, 'dangling-outside-');
+  const linkPath = path.join(workspace, 'work');
+  try {
+    symlinkSync(outside, linkPath, process.platform === 'win32' ? 'junction' : 'dir');
+  } catch (error) {
+    if (error.code === 'EPERM' || error.code === 'EACCES' || error.code === 'UNKNOWN') {
+      t.skip(`symlink creation unavailable: ${error.code}`);
+      return;
+    }
+    throw error;
+  }
+  rmSync(outside, { recursive: true, force: true });
+
+  const result = runCli(['init', workspace]);
+
+  assert.equal(result.status, 4);
+  assert.match(result.stderr, /symlink/);
+  assert.equal(existsSync(path.join(workspace, 'project-brief.md')), false);
+  assert.equal(existsSync(path.join(workspace, 'work', 'run-state.json')), false);
+});
+
+test('a directory at work/run-state.json is a filesystem error', (t) => {
+  const workspace = workspaceFor(t, 'state-directory-');
+  mkdirSync(path.join(workspace, 'work', 'run-state.json'), { recursive: true });
+
+  const result = runCli(['status', workspace]);
+
+  assert.equal(result.status, 4);
+  assert.match(result.stderr, /Cannot read work\/run-state\.json/);
+});
+
+test('a failed state write does not leave a new phase template', (t) => {
+  if (process.platform !== 'win32') {
+    t.skip('read-only rename failure is exercised on Windows');
+    return;
+  }
+  const workspace = initializeFilledBrief(t);
+  const statePath = path.join(workspace, 'work', 'run-state.json');
+  chmodSync(statePath, 0o444);
+  try {
+    const result = runCli(['advance', workspace, '--phase', 'evidence', '--status', 'in_progress']);
+
+    assert.equal(result.status, 4);
+    assert.equal(existsSync(path.join(workspace, 'work', '01-evidence', '01-evidence.md')), false);
+  } finally {
+    chmodSync(statePath, 0o666);
+  }
 });
 
 test('Markdown artifact symlinks are rejected when the platform permits symlink creation', (t) => {
