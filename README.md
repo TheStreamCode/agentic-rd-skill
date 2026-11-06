@@ -5,27 +5,12 @@ A portable multi-agent research and development workflow for Codex, Claude Code,
 [![CI](https://github.com/TheStreamCode/agentic-rd-skill/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/TheStreamCode/agentic-rd-skill/actions/workflows/ci.yml)
 [![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![skills.sh](https://skills.sh/b/TheStreamCode/agentic-rd-skill)](https://skills.sh/TheStreamCode/agentic-rd-skill)
-[![Version](https://img.shields.io/badge/version-1.2.0-2ea44f)](CHANGELOG.md)
 
 ![Pixel-art overview of Agentic R&D Skill turning a project brief into specialist work, review, and final outputs](assets/agentic-rd-skill-hero.png)
 
 Agentic R&D Skill is an Agent Skills package that turns a substantial research, feasibility, or planning brief into traceable evidence, an executable plan, reviewed results, and a gated final report. It runs inside the coding agent you already use, uses native subagents when the host provides them, and falls back to a deterministic single-agent workflow when it does not.
 
 It is an independent adaptation of the workflow ideas behind Agent Laboratory, not a fork of its scientific experiment runtime.
-
-## Table of contents
-
-- [Install](#install)
-- [Quick start](#quick-start)
-- [Features](#features)
-- [Requirements](#requirements)
-- [Configuration](#configuration)
-- [Privacy and security](#privacy-and-security)
-- [Troubleshooting](#troubleshooting)
-- [Development](#development)
-- [Support](#support)
-- [Contributing](#contributing)
-- [License](#license)
 
 ## Install
 
