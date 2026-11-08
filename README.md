@@ -13,20 +13,6 @@ Agentic R&D Skill is an Agent Skills package that turns a substantial research, 
 
 It is an independent adaptation of the workflow ideas behind Agent Laboratory, not a fork of its scientific experiment runtime.
 
-## Table of contents
-
-- [Install](#install)
-- [Quick start](#quick-start)
-- [Features](#features)
-- [Requirements](#requirements)
-- [Configuration](#configuration)
-- [Privacy and security](#privacy-and-security)
-- [Troubleshooting](#troubleshooting)
-- [Development](#development)
-- [Support](#support)
-- [Contributing](#contributing)
-- [License](#license)
-
 ## Install
 
 Install the skill from the public repository with the cross-agent Skills CLI:
